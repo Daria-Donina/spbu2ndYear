@@ -2,7 +2,7 @@
 
 namespace Lazy
 {
-    class Lazy<T> : ILazy<T>
+    public class Lazy<T> : ILazy<T>
     {
         private T value;
         private readonly Func<T> supplier;

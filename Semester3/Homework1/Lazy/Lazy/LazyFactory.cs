@@ -2,7 +2,7 @@
 
 namespace Lazy
 {
-    class LazyFactory<T>
+    public class LazyFactory<T>
     {
         public static Lazy<T> CreateLazy(Func<T> supplier) => new Lazy<T>(supplier);
 

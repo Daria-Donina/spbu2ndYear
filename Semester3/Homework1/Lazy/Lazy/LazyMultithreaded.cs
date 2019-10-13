@@ -2,7 +2,7 @@
 
 namespace Lazy
 {
-    class LazyMultithreaded<T> : ILazy<T>
+    public class LazyMultithreaded<T> : ILazy<T>
     {
         private T value;
         private readonly Func<T> supplier;
