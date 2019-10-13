@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Threading;
 
 namespace Lazy
 {
@@ -7,7 +8,7 @@ namespace Lazy
         private T value;
         private readonly Func<T> supplier;
         private bool IsCalculated;
-        private object lockObject = new object();
+        private readonly object lockObject = new object();
 
         public LazyMultithreaded(Func<T> supplier) => this.supplier = supplier ?? throw new ArgumentNullException();
 
@@ -18,7 +19,7 @@ namespace Lazy
                 lock (lockObject)
                 {
                     value = supplier();
-                    IsCalculated = true;
+                    Volatile.Write(ref IsCalculated, true);
                 }
             }
 
