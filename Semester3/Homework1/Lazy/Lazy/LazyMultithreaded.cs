@@ -10,8 +10,8 @@ namespace Lazy
     public class LazyMultithreaded<T> : ILazy<T>
     {
         private T value;
-        private readonly Func<T> supplier;
-        private bool IsCalculated;
+        private Func<T> supplier;
+        private bool isCalculated;
         private readonly object lockObject = new object();
 
         public LazyMultithreaded(Func<T> supplier) => this.supplier = supplier ?? throw new ArgumentNullException();
@@ -22,12 +22,13 @@ namespace Lazy
         /// <returns> Value that has been calculated.</returns>
         public T Get()
         {
-            if (!IsCalculated)
+            if (!Volatile.Read(ref isCalculated))
             {
                 lock (lockObject)
                 {
                     value = supplier();
-                    Volatile.Write(ref IsCalculated, true);
+                    supplier = null;
+                    Volatile.Write(ref isCalculated, true);
                 }
             }
 

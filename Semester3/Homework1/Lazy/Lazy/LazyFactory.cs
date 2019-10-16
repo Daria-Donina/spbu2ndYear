@@ -6,7 +6,7 @@ namespace Lazy
     /// Object producing lazy objects.
     /// </summary>
     /// <typeparam name="T"> Type of calculated value.</typeparam>
-    public class LazyFactory<T>
+    public static class LazyFactory<T>
     {
         /// <summary>
         /// Creates lazy calculation object.

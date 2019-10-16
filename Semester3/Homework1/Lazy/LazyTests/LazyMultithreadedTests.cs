@@ -24,7 +24,7 @@ namespace Lazy.Tests
         [TestMethod]
         public void RepeatedGetCallTest()
         {
-            var lazy = LazyFactory<int[]>.CreateLazyMultitreaded(() => (new int[] { 1, 2, 3, 4, 5, 6 }));
+            var lazy = LazyFactory<int[]>.CreateLazyMultitreaded(() => (new [] { 1, 2, 3, 4, 5, 6 }));
 
             const int amountOfThreads = 10;
             var threads = new List<Thread>();

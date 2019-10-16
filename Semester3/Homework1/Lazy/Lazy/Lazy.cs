@@ -9,8 +9,8 @@ namespace Lazy
     public class Lazy<T> : ILazy<T>
     {
         private T value;
-        private readonly Func<T> supplier;
-        private bool IsCalculated;
+        private Func<T> supplier;
+        private bool isCalculated;
 
         public Lazy(Func<T> supplier) => this.supplier = supplier ?? throw new ArgumentNullException();
 
@@ -20,10 +20,11 @@ namespace Lazy
         /// <returns> Value that has been calculated.</returns>
         public T Get()
         {
-            if (!IsCalculated)
+            if (!isCalculated)
             {
                 value = supplier();
-                IsCalculated = true;
+                supplier = null;
+                isCalculated = true;
             }
 
             return value;

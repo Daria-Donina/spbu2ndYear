@@ -22,7 +22,7 @@ namespace Lazy.Tests
         [TestMethod]
         public void RepeatedGetCallTest()
         {
-            var lazy = LazyFactory<int[]>.CreateLazy(() => (new int[] { 1, 2, 3, 4, 5, 6 }));
+            var lazy = LazyFactory<int[]>.CreateLazy(() => (new [] { 1, 2, 3, 4, 5, 6 }));
 
             var firstResult = lazy.Get();
             Assert.AreEqual(firstResult, lazy.Get());
