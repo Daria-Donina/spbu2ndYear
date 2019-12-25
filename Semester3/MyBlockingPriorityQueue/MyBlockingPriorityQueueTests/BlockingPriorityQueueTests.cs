@@ -19,27 +19,11 @@ namespace MyBlockingPriorityQueueTests
         [TestMethod]
         public void DequeueTest()
         {
-            intQueue.Enqueue(1, 3);
-            intQueue.Enqueue(2, 7);
-            intQueue.Enqueue(3, 6);
-            intQueue.Enqueue(4, 4);
-        }
-
-        [TestMethod]
-        public void DequeueFromHead()
-        {
-            intQueue.Enqueue(1, 6);
-
-            const int amountOfThreads = 10;
             var threads = new List<Thread>();
 
-            for (int i = 0; i < amountOfThreads; ++i)
-            {
-                threads.Add(new Thread(() =>
-                {
-                    Assert.AreEqual(1, intQueue.Dequeue());
-                }));
-            }
+            threads.Add(new Thread(() => intQueue.Enqueue(1, 5)));
+            threads.Add(new Thread(() => intQueue.Enqueue(2, 4)));
+            threads.Add(new Thread(() => intQueue.Enqueue(3, 6)));
 
             foreach (var thread in threads)
             {
@@ -50,12 +34,25 @@ namespace MyBlockingPriorityQueueTests
             {
                 thread.Join();
             }
+
+            Assert.AreEqual(3, intQueue.Dequeue());
+            Assert.AreEqual(1, intQueue.Dequeue());
+            Assert.AreEqual(2, intQueue.Dequeue());
         }
 
         [TestMethod]
         public void DequeueEmpty()
         {
+            var threads = new List<Thread>();
 
+            int value = 0;
+            var threadDeq = new Thread(() => value = intQueue.Dequeue());
+
+            threadDeq.Start();
+            threadDeq.Join();
+
+            var threadInq = new Thread(() => intQueue.Enqueue(4, 1));
+            Assert.AreEqual(4, value);
         }
     }
 }

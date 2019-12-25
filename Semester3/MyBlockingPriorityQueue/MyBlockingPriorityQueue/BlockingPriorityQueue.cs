@@ -154,11 +154,17 @@ namespace MyBlockingPriorityQueue
         }
 
         /// <summary>
+        /// Returns size of the queue.
+        /// </summary>
+        public int Size() => Length;
+
+        /// <summary>
         /// Removes all elements from the queue.
         /// </summary>
         public void Clear()
         {
             head = null;
+            tail = null;
             Length = 0;
         }
     }
