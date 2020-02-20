@@ -9,12 +9,12 @@ namespace MyThreadPool
     {
         private List<Thread> threads;
         private ConcurrentQueue<Action> actions;
-        private object invokeLocker = new object();
         private object taskLocker = new object();
         private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         public int ActiveThreads { get; private set; }
         private AutoResetEvent autoResetEvent = new AutoResetEvent(false);
 
+        //При создании объекта MyThreadPool в нем должно начать работу n потоков
         public MyThreadPool(int threadNumber)
         {
             if (threadNumber <= 0)
@@ -32,6 +32,15 @@ namespace MyThreadPool
             }
         }
 
+        //У каждого потока есть два состояния: ожидание задачи / выполнение задачи
+        //
+        //При добавлении задачи, если в пуле есть ожидающий поток, то он должен приступить к ее исполнению. 
+        //Иначе задача будет ожидать исполнения, пока не освободится какой-нибудь поток
+        //
+        //уже запущенные задачи не прерываются, 
+        //но новые задачи не принимаются на исполнение потоками из пула.
+        //
+        //дать всем задачам, которые уже попали в очередь, досчитаться
         private void PerformTasks()
         {
             while (true)
@@ -43,10 +52,7 @@ namespace MyThreadPool
 
                 if (actions.TryDequeue(out Action action))
                 {
-                    lock (invokeLocker)
-                    {
-                        action();
-                    }
+                    action();
                 }
                 else
                 {
@@ -55,6 +61,7 @@ namespace MyThreadPool
             }
         }
 
+        //Задачи, принятые к исполнению, представлены в виде объектов интерфейса IMyTask<TResult>
         public void AddTask<TResult>(Func<TResult> supplier)
         {
             if (cancellationTokenSource.IsCancellationRequested)
@@ -62,14 +69,23 @@ namespace MyThreadPool
                 throw new ShutdownException();
             }
 
-            lock (taskLocker)
-            {
-                var task = new MyTask<TResult>(supplier, this);
-                actions.Enqueue(task.Execute);
-                autoResetEvent.Set();
-            }
+            var task = new MyTask<TResult>(supplier, this);
+            AddAction(task.Execute);
         }
 
+        private void AddAction(Action action)
+        {
+            if (cancellationTokenSource.IsCancellationRequested)
+            {
+                throw new ShutdownException();
+            }
+
+            actions.Enqueue(action);
+            autoResetEvent.Set();
+        }
+
+        //Метод Shutdown должен завершить работу потоков. Завершение работы коллаборативное, 
+        //с использованием CancellationToken
         public void Shutdown()
         {
             if (cancellationTokenSource.IsCancellationRequested)
@@ -80,6 +96,7 @@ namespace MyThreadPool
             cancellationTokenSource.Cancel();
         }
 
+        //Задача — вычисление некоторого значения, описывается в виде Func<TResult>
         private class MyTask<TResult> : IMyTask<TResult>
         {
             public bool IsCompleted { get; private set; }
@@ -89,8 +106,11 @@ namespace MyThreadPool
             private TResult result;
             private MyThreadPool threadPool;
             private Queue<Action> tasksQueue = new Queue<Action>();
-            private object executeLocker = new object();
+            private object queueLock = new object();
 
+            //Свойство Result возвращает результат выполнения задачи
+            //
+            //Если результат еще не вычислен, метод ожидает его и возвращает полученное значение, блокируя вызвавший его поток
             public TResult Result
             {
                 get
@@ -116,20 +136,51 @@ namespace MyThreadPool
                 this.threadPool = threadPool;
             }
 
+            //Метод ContinueWith — принимает объект типа Func<TResult, TNewResult>, 
+            //который может быть применен к результату данной задачи X и возвращает новую задачу Y, принятую к исполнению
+            //
+            //Новая задача будет исполнена не ранее, чем завершится исходная
+            //В качестве аргумента объекту Func будет передан результат исходной задачи, 
+            //и все Y должны исполняться на общих основаниях (т.е. должны разделяться между потоками пула)
+            //
+            //Метод ContinueWith может быть вызван несколько раз
+            //
+            //Метод ContinueWith не должен блокировать работу потока, если результат задачи X ещё не вычислен
+            //
+            //ContinueWith должен быть согласован с Shutdown --- принятая как ContinueWith задача должна либо досчитаться,
+            //либо бросить исключение ожидающему её потоку.
             public IMyTask<TNewResult> ContinueWith<TNewResult>(Func<TResult, TNewResult> supplier)
             {
+                if (threadPool.cancellationTokenSource.IsCancellationRequested)
+                {
+                    throw new ShutdownException();
+                }
+
                 var newTask = new MyTask<TNewResult>(() => supplier(result), threadPool);
 
                 if (!IsCompleted)
                 {
+                    lock (queueLock)
+                    {
+                        tasksQueue.Enqueue(newTask.Execute);
+                    }
                     tasksQueue.Enqueue(newTask.Execute);
                     return newTask;
                 }
 
-
+                lock (queueLock)
+                {
+                    threadPool.AddAction(newTask.Execute);
+                }
+                
                 return newTask;
             }
 
+            //Свойство IsCompleted возвращает true, если задача выполнена
+            //
+            //В случае, если соответствующая задаче функция завершилась с исключением, 
+            //этот метод должен завершиться с исключением AggregateException, содержащим внутри себя исключение, 
+            //вызвавшее проблему
             public void Execute()
             {
                 try
@@ -142,12 +193,16 @@ namespace MyThreadPool
                 }
                 finally
                 {
-                    lock (executeLocker)
-                    {
-                        IsCompleted = true;
-                        supplier = null;
+                    IsCompleted = true;
+                    supplier = null;
+                    isCalculatedResetEvent.Set();
 
-                        isCalculatedResetEvent.Set();
+                    lock (queueLock)
+                    {
+                        while (tasksQueue.Count != 0)
+                        {
+                            threadPool.AddAction(tasksQueue.Dequeue());
+                        }
                     }
                 }
             }
