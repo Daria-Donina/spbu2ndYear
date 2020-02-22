@@ -1,0 +1,7 @@
+image: Visual Studio 2019
+
+before_build:
+  - nuget restore Semester3/Homework2/MyThreadPool/MyThreadPool.sln
+
+build:
+  project: Semester3/Homework1/MyThreadPool/MyThreadPool.sln
