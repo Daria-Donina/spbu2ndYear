@@ -5,15 +5,21 @@ using System.Threading;
 
 namespace MyThreadPool
 {
+    /// <summary>
+    /// Provides a pool of threads that can be used to execute tasks.
+    /// </summary>
     public class MyThreadPool
     {
-        private List<Thread> threads;
-        private ConcurrentQueue<Action> actions;
-        private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+        private readonly List<Thread> threads;
+        private readonly ConcurrentQueue<Action> actions;
+        private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
+
+        /// <summary>
+        /// Returns a number of running threads in threadpool.
+        /// </summary>
         public int ActiveThreads { get; private set; }
         private AutoResetEvent taskAdded = new AutoResetEvent(false);
 
-        //При создании объекта MyThreadPool в нем должно начать работу n потоков
         public MyThreadPool(int threadNumber)
         {
             if (threadNumber <= 0)
@@ -33,15 +39,6 @@ namespace MyThreadPool
             ActiveThreads = threadNumber;
         }
 
-        //У каждого потока есть два состояния: ожидание задачи / выполнение задачи
-        //
-        //При добавлении задачи, если в пуле есть ожидающий поток, то он должен приступить к ее исполнению. 
-        //Иначе задача будет ожидать исполнения, пока не освободится какой-нибудь поток
-        //
-        //уже запущенные задачи не прерываются, 
-        //но новые задачи не принимаются на исполнение потоками из пула.
-        //
-        //дать всем задачам, которые уже попали в очередь, досчитаться
         private void PerformTasks()
         {
             while (true)
@@ -57,7 +54,12 @@ namespace MyThreadPool
             }
         }
 
-        //Задачи, принятые к исполнению, представлены в виде объектов интерфейса IMyTask<TResult>
+        /// <summary>
+        /// Adds task to the threadpool to be calculated.
+        /// </summary>
+        /// <typeparam name="TResult">Type of the task result.</typeparam>
+        /// <param name="supplier">A function describing task.</param>
+        /// <returns>Task created using the supplier.</returns>
         public IMyTask<TResult> AddTask<TResult>(Func<TResult> supplier)
         {
             if (cancellationTokenSource.IsCancellationRequested)
@@ -77,25 +79,32 @@ namespace MyThreadPool
             taskAdded.Set();
         }
 
-        //Метод Shutdown должен завершить работу потоков. Завершение работы коллаборативное, 
-        //с использованием CancellationToken
+        /// <summary>
+        /// Closes the threadpool.
+        /// </summary>
         public void Shutdown() => cancellationTokenSource.Cancel();
 
-        //Задача — вычисление некоторого значения, описывается в виде Func<TResult>
+        /// <summary>
+        /// Represents an asynchronous operation.
+        /// </summary>
+        /// <typeparam name="TResult">Type of the task result.</typeparam>
         private class MyTask<TResult> : IMyTask<TResult>
         {
+            /// <summary>
+            /// Reports whether the task is completed or not.
+            /// </summary>
             public bool IsCompleted { get; private set; }
             private Func<TResult> supplier;
             private AggregateException exception;
-            private ManualResetEvent isCalculatedResetEvent = new ManualResetEvent(false);
+            private readonly ManualResetEvent isCalculatedResetEvent = new ManualResetEvent(false);
             private TResult result;
-            private MyThreadPool threadPool;
-            private Queue<Action> tasksQueue = new Queue<Action>();
-            private object queueLock = new object();
+            private readonly MyThreadPool threadPool;
+            private readonly Queue<Action> tasksQueue = new Queue<Action>();
+            private readonly object queueLock = new object();
 
-            //Свойство Result возвращает результат выполнения задачи
-            //
-            //Если результат еще не вычислен, метод ожидает его и возвращает полученное значение, блокируя вызвавший его поток
+            /// <summary>
+            /// Returns the result of the task.
+            /// </summary>
             public TResult Result
             {
                 get
@@ -121,19 +130,12 @@ namespace MyThreadPool
                 this.threadPool = threadPool;
             }
 
-            //Метод ContinueWith — принимает объект типа Func<TResult, TNewResult>, 
-            //который может быть применен к результату данной задачи X и возвращает новую задачу Y, принятую к исполнению
-            //
-            //Новая задача будет исполнена не ранее, чем завершится исходная
-            //В качестве аргумента объекту Func будет передан результат исходной задачи, 
-            //и все Y должны исполняться на общих основаниях (т.е. должны разделяться между потоками пула)
-            //
-            //Метод ContinueWith может быть вызван несколько раз
-            //
-            //Метод ContinueWith не должен блокировать работу потока, если результат задачи X ещё не вычислен
-            //
-            //ContinueWith должен быть согласован с Shutdown --- принятая как ContinueWith задача должна либо досчитаться,
-            //либо бросить исключение ожидающему её потоку.
+            /// <summary>
+            /// Creates a continuation that executes when the target task completes.
+            /// </summary>
+            /// <typeparam name="TNewResult">Type of the continuation result.</typeparam>
+            /// <param name="supplier">A function describing continuation.</param>
+            /// <returns>The created continuation.</returns>
             public IMyTask<TNewResult> ContinueWith<TNewResult>(Func<TResult, TNewResult> supplier)
             {
                 if (threadPool.cancellationTokenSource.IsCancellationRequested)
@@ -161,11 +163,6 @@ namespace MyThreadPool
                 return newTask;
             }
 
-            //Свойство IsCompleted возвращает true, если задача выполнена
-            //
-            //В случае, если соответствующая задаче функция завершилась с исключением, 
-            //этот метод должен завершиться с исключением AggregateException, содержащим внутри себя исключение, 
-            //вызвавшее проблему
             public void Execute()
             {
                 try
