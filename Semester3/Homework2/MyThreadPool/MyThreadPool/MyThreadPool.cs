@@ -5,14 +5,13 @@ using System.Threading;
 
 namespace MyThreadPool
 {
-    class MyThreadPool
+    public class MyThreadPool
     {
         private List<Thread> threads;
         private ConcurrentQueue<Action> actions;
-        private object taskLocker = new object();
         private CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
         public int ActiveThreads { get; private set; }
-        private AutoResetEvent autoResetEvent = new AutoResetEvent(false);
+        private AutoResetEvent taskAdded = new AutoResetEvent(false);
 
         //При создании объекта MyThreadPool в нем должно начать работу n потоков
         public MyThreadPool(int threadNumber)
@@ -30,6 +29,8 @@ namespace MyThreadPool
                 threads.Add(new Thread(PerformTasks));
                 threads[i].Start();
             }
+
+            ActiveThreads = threadNumber;
         }
 
         //У каждого потока есть два состояния: ожидание задачи / выполнение задачи
@@ -45,24 +46,19 @@ namespace MyThreadPool
         {
             while (true)
             {
-                if (cancellationTokenSource.IsCancellationRequested)
-                {
-                    throw new ShutdownException();
-                }
-
                 if (actions.TryDequeue(out Action action))
                 {
                     action();
                 }
                 else
                 {
-                    autoResetEvent.WaitOne();
+                    taskAdded.WaitOne();
                 }
             }
         }
 
         //Задачи, принятые к исполнению, представлены в виде объектов интерфейса IMyTask<TResult>
-        public void AddTask<TResult>(Func<TResult> supplier)
+        public IMyTask<TResult> AddTask<TResult>(Func<TResult> supplier)
         {
             if (cancellationTokenSource.IsCancellationRequested)
             {
@@ -71,30 +67,19 @@ namespace MyThreadPool
 
             var task = new MyTask<TResult>(supplier, this);
             AddAction(task.Execute);
+
+            return task;
         }
 
         private void AddAction(Action action)
         {
-            if (cancellationTokenSource.IsCancellationRequested)
-            {
-                throw new ShutdownException();
-            }
-
             actions.Enqueue(action);
-            autoResetEvent.Set();
+            taskAdded.Set();
         }
 
         //Метод Shutdown должен завершить работу потоков. Завершение работы коллаборативное, 
         //с использованием CancellationToken
-        public void Shutdown()
-        {
-            if (cancellationTokenSource.IsCancellationRequested)
-            {
-                throw new ShutdownException();
-            }
-
-            cancellationTokenSource.Cancel();
-        }
+        public void Shutdown() => cancellationTokenSource.Cancel();
 
         //Задача — вычисление некоторого значения, описывается в виде Func<TResult>
         private class MyTask<TResult> : IMyTask<TResult>
