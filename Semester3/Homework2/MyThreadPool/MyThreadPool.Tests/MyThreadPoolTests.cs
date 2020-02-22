@@ -94,9 +94,9 @@ namespace MyThreadPool.Tests
         public void ShutdownAddTaskTest()
         {
             var threadpool = new MyThreadPool(3);
-            var task1 = threadpool.AddTask(() => 1 + 9);
-            var task2 = threadpool.AddTask(() => "test" + " " + "string");
-            var task3 = threadpool.AddTask(() => 82349374823 - 8173690442);
+            _ = threadpool.AddTask(() => 1 + 9);
+            _ = threadpool.AddTask(() => "test" + " " + "string");
+            _ = threadpool.AddTask(() => 82349374823 - 8173690442);
 
             threadpool.Shutdown();
             threadpool.AddTask(() => "new task");
@@ -225,7 +225,7 @@ namespace MyThreadPool.Tests
 
             threadpool.Shutdown();
 
-            var task4 = task3.ContinueWith((x) => x + " task 4");
+            _ = task3.ContinueWith((x) => x + " task 4");
 
             Assert.AreEqual("task 1 task 2 task 3", task3.Result);
         }

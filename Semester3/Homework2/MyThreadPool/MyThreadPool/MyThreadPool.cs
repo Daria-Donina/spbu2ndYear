@@ -10,7 +10,6 @@ namespace MyThreadPool
     /// </summary>
     public class MyThreadPool
     {
-        private readonly List<Thread> threads;
         private readonly ConcurrentQueue<Action> actions;
         private readonly CancellationTokenSource cancellationTokenSource = new CancellationTokenSource();
 
@@ -18,7 +17,7 @@ namespace MyThreadPool
         /// Returns a number of running threads in threadpool.
         /// </summary>
         public int ActiveThreads { get; private set; }
-        private AutoResetEvent taskAdded = new AutoResetEvent(false);
+        private readonly AutoResetEvent taskAdded = new AutoResetEvent(false);
 
         public MyThreadPool(int threadNumber)
         {
@@ -27,7 +26,7 @@ namespace MyThreadPool
                 throw new ArgumentOutOfRangeException("Number of threads have to be a natural number.");
             }
 
-            threads = new List<Thread>();
+            var threads = new List<Thread>();
             actions = new ConcurrentQueue<Action>();
 
             for (int i = 0; i < threadNumber; ++i)
