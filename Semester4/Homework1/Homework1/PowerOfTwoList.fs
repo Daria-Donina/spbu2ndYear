@@ -13,13 +13,15 @@ let powerOfTwoList n m =
                 let b = power x (y / 2)
                 b * b
 
-        let rec recPowerOfTwoList n i list =
+        let currentElementToAdd = power 2 (n + m)
+
+        let rec recPowerOfTwoList i list current=
             if i = -1 then
                 list
             else
-                recPowerOfTwoList n (i - 1) (power 2 (n + i) :: list)
+                recPowerOfTwoList (i - 1) (current :: list) (current / 2)
 
-        Some(recPowerOfTwoList n m [])
+        Some(recPowerOfTwoList m [] currentElementToAdd)
 
     
 
