@@ -37,16 +37,20 @@ namespace SimpleFTP
             Task.Run(async () =>
             {
                 var reader = new StreamReader(stream);
+                var writer = new StreamWriter(stream);
+
                 while (true)
                 {
                     var command = await reader.ReadLineAsync();
+                    var path = command.Substring(2);
+
                     if (command.StartsWith("1"))
                     {
-                        var answer = await ListResponse(command.Substring(2));
+                        await ListResponse(path, writer);
                     }
                     else if (command.StartsWith("2"))
                     {
-                        var answer = await GetResponse(command.Substring(2));
+                        await GetResponse(path, writer);
                     }
                     else
                     {
@@ -56,14 +60,30 @@ namespace SimpleFTP
             });
         }
 
-        private async Task<string> ListResponse(string path)
+        private async Task ListResponse(string path, StreamWriter writer)
         {
+            var dirInfo = new DirectoryInfo(path);
+
+            if (!dirInfo.Exists)
+            {
+                await writer.WriteLineAsync("-1");
+                return;
+            }
+
 
         }
 
-        private async Task<string> GetResponse(string path)
+        private async Task GetResponse(string path, StreamWriter writer)
         {
+            var fileInfo = new FileInfo(path);
 
+            if(!fileInfo.Exists)
+            {
+                await writer.WriteLineAsync("-1");
+                return;
+            }
+
+            await writer.WriteLineAsync($"{fileInfo.Length} {File.ReadAllBytes(path)}");
         }
 
         public void Stop()
