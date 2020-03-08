@@ -21,17 +21,47 @@ namespace SimpleFTP
             listener = new TcpListener(IPAddress.Any, port);
         }
 
-        public void Start()
+        public async void Start()
+        {
+            listener.Start();
+
+            while (true)
+            {
+                var client = await listener.AcceptTcpClientAsync();
+                Reader(client.GetStream());
+            }
+        }
+
+        private void Reader(NetworkStream stream)
+        {
+            Task.Run(async () =>
+            {
+                var reader = new StreamReader(stream);
+                while (true)
+                {
+                    var command = await reader.ReadLineAsync();
+                    if (command.StartsWith("1"))
+                    {
+                        var answer = await ListResponse(command.Substring(2));
+                    }
+                    else if (command.StartsWith("2"))
+                    {
+                        var answer = await GetResponse(command.Substring(2));
+                    }
+                    else
+                    {
+                        throw new InvalidDataException("The request has the wrong format.");
+                    }
+                }
+            });
+        }
+
+        private async Task<string> ListResponse(string path)
         {
 
         }
 
-        private void GetResponse()
-        {
-
-        }
-
-        private void ListResponse()
+        private async Task<string> GetResponse(string path)
         {
 
         }
@@ -39,6 +69,7 @@ namespace SimpleFTP
         public void Stop()
         {
             cancellationToken.Cancel();
+            listener.Stop();
         }
     }
 }

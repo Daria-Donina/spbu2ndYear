@@ -22,11 +22,11 @@ namespace SimpleFTP
 
         private StreamWriter writer;
 
-        private async void Connect()
+        private void Connect()
         {
             var stream = tcpClient.GetStream();
             reader = new StreamReader(stream);
-            writer = new StreamWriter(stream);
+            writer = new StreamWriter(stream) { AutoFlush = true };
         }
 
         /// <summary>
@@ -34,9 +34,11 @@ namespace SimpleFTP
         /// </summary>
         /// <param name="path"> Relative path to the directory. </param>
         /// <returns> String containing a list of files' and directories' names and their total number. </returns>
-        public void List(string path)
+        public async Task<string> List(string path)
         {
             var request = $"1 {path}";
+            await writer.WriteLineAsync(request);
+            return await reader.ReadLineAsync();
         }
 
         /// <summary>
@@ -44,11 +46,11 @@ namespace SimpleFTP
         /// </summary>
         /// <param name="path"> Relative file path. </param>
         /// <returns> String containing size of the file and its content in bytes. </returns>
-        public async void Get(string path)
+        public async Task<string> Get(string path)
         {
             var request = $"2 {path}";
             await writer.WriteLineAsync(request);
-            await reader.ReadLineAsync();
+            return await reader.ReadLineAsync();
         }
     }
 }
