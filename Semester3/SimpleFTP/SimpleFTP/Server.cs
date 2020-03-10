@@ -70,7 +70,22 @@ namespace SimpleFTP
                 return;
             }
 
+            var files = dirInfo.GetFiles();
+            var directories = dirInfo.GetDirectories();
 
+            var response = $"{files.Length + directories.Length} ";
+            
+            foreach (var file in files)
+            {
+                response += $"{file.FullName} false";
+            }
+
+            foreach (var directory in directories)
+            {
+                response += $"{directory.FullName} true";
+            }
+
+            await writer.WriteLineAsync(response);
         }
 
         private async Task GetResponse(string path, StreamWriter writer)
