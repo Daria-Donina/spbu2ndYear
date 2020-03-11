@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace SimpleFTP
 {
-    class Client
+    public class Client
     {
         private TcpClient tcpClient;
 
@@ -22,7 +22,7 @@ namespace SimpleFTP
 
         private StreamWriter writer;
 
-        private void Connect()
+        public void Connect()
         {
             var stream = tcpClient.GetStream();
             reader = new StreamReader(stream);

@@ -13,13 +13,6 @@ namespace SimpleFTP
     {
         static void Main(string[] args)
         {
-            var client = new Client();
-            var server = new Server();
-
-            server.On();
-            client.On();
-            
-           
         }
     }
 }

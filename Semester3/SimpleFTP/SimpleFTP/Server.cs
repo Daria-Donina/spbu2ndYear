@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace SimpleFTP
 {
-    class Server
+    public class Server
     {
         private CancellationTokenSource cancellationToken = new CancellationTokenSource();
 
@@ -21,7 +21,7 @@ namespace SimpleFTP
             listener = new TcpListener(IPAddress.Any, port);
         }
 
-        public async void Start()
+        public async Task Start()
         {
             listener.Start();
 
