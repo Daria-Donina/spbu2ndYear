@@ -1,45 +1,50 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+﻿using System.IO;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SimpleFTP
 {
+    /// <summary>
+    /// Class implementing a network server that handles some requests.
+    /// </summary>
     public class Server
     {
-        private CancellationTokenSource cancellationToken = new CancellationTokenSource();
+        private readonly CancellationTokenSource cancellationToken = new CancellationTokenSource();
 
-        private TcpListener listener;
+        private readonly TcpListener listener;
 
         public Server(int port)
         {
             listener = new TcpListener(IPAddress.Any, port);
         }
 
-        public async Task Start()
+        /// <summary>
+        /// Runs the server.
+        /// </summary>
+        public void Start()
         {
             listener.Start();
 
-            while (true)
+            Task.Run(async () =>
             {
-                var client = await listener.AcceptTcpClientAsync();
-                Reader(client.GetStream());
-            }
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    var client = await listener.AcceptTcpClientAsync();
+                    RequestHandler(client.GetStream());
+                }
+            });
         }
 
-        private void Reader(NetworkStream stream)
+        private void RequestHandler(NetworkStream stream)
         {
             Task.Run(async () =>
             {
                 var reader = new StreamReader(stream);
-                var writer = new StreamWriter(stream);
+                var writer = new StreamWriter(stream) { AutoFlush = true };
 
-                while (true)
+                while (!cancellationToken.IsCancellationRequested)
                 {
                     var command = await reader.ReadLineAsync();
                     var path = command.Substring(2);
@@ -73,16 +78,18 @@ namespace SimpleFTP
             var files = dirInfo.GetFiles();
             var directories = dirInfo.GetDirectories();
 
-            var response = $"{files.Length + directories.Length} ";
+            var response = $"{files.Length + directories.Length}";
+
+            var fullPath = dirInfo.FullName;
             
             foreach (var file in files)
             {
-                response += $"{file.FullName} false";
+                response += $" {file.FullName.Substring(fullPath.Length + 1)} false";
             }
 
             foreach (var directory in directories)
             {
-                response += $"{directory.FullName} true";
+                response += $" {directory.FullName.Substring(fullPath.Length + 1)} true";
             }
 
             await writer.WriteLineAsync(response);
@@ -101,6 +108,9 @@ namespace SimpleFTP
             await writer.WriteLineAsync($"{fileInfo.Length} {File.ReadAllBytes(path)}");
         }
 
+        /// <summary>
+        /// Stops the server.
+        /// </summary>
         public void Stop()
         {
             cancellationToken.Cancel();
