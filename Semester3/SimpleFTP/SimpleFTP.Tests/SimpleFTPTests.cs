@@ -208,21 +208,5 @@ namespace SimpleFTP.Tests
                 CloseClientAndServer();
             }
         }
-
-        [TestMethod]
-        public async Task ListEmptyDirectoryTest()
-        {
-            try
-            {
-                RunClientAndServer();
-
-                var response = await client.List("../../../SimpleFTP.Tests/TestFiles/SomeDirectory");
-                Assert.AreEqual("0", response);
-            }
-            finally
-            {
-                CloseClientAndServer();
-            }
-        }
     }
 }
