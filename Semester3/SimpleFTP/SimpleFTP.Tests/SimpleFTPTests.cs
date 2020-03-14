@@ -36,54 +36,74 @@ namespace SimpleFTP.Tests
         [TestMethod]
         public async Task ListTest()
         {
-            RunClientAndServer();
+            try
+            {
+                RunClientAndServer();
 
-            var response = await client.List("../../../SimpleFTP.Tests/TestFiles");
-            var responseSplitted = response.Split(' ');
+                var response = await client.List("../../../SimpleFTP.Tests/TestFiles");
+                var responseSplitted = response.Split(' ');
 
-            Assert.AreEqual(4, int.Parse(responseSplitted[0]));
+                Assert.AreEqual(4, int.Parse(responseSplitted[0]));
 
-            Assert.IsTrue(Array.Exists(responseSplitted, file => file == "TestFile1.txt"));
-            var fileIndex = Array.IndexOf(responseSplitted, "TestFile1.txt");
-            Assert.IsFalse(bool.Parse(responseSplitted[fileIndex + 1]));
+                Assert.IsTrue(Array.Exists(responseSplitted, file => file == "TestFile1.txt"));
+                var fileIndex = Array.IndexOf(responseSplitted, "TestFile1.txt");
+                Assert.IsFalse(bool.Parse(responseSplitted[fileIndex + 1]));
 
-            Assert.IsTrue(Array.Exists(responseSplitted, directory => directory == "SomeDirectory"));
-            var directoryIndex = Array.IndexOf(responseSplitted, "SomeDirectory");
-            Assert.IsTrue(bool.Parse(responseSplitted[directoryIndex + 1]));
-
-            CloseClientAndServer();
+                Assert.IsTrue(Array.Exists(responseSplitted, directory => directory == "SomeDirectory"));
+                var directoryIndex = Array.IndexOf(responseSplitted, "SomeDirectory");
+                Assert.IsTrue(bool.Parse(responseSplitted[directoryIndex + 1]));
+            }
+            finally
+            {
+                CloseClientAndServer();
+            }
         }
 
         [TestMethod]
         public async Task GetTest()
         {
-            RunClientAndServer();
+            try
+            {
+                RunClientAndServer();
 
-            var response = await client.Get("../../../SimpleFTP.Tests/TestFiles/GetTestFile.txt");
-            Assert.AreNotEqual("-1", response);
+                var response = await client.Get("../../../SimpleFTP.Tests/TestFiles/GetTestFile.txt");
+                Assert.AreNotEqual("-1", response);
 
-            var responseSplitted = response.Split(' ');
-            Assert.AreEqual(91, long.Parse(responseSplitted[0]));
-
-            CloseClientAndServer();
+                var responseSplitted = response.Split(' ');
+                Assert.AreEqual(91, long.Parse(responseSplitted[0]));
+            }
+            finally
+            {
+                CloseClientAndServer();
+            }
         }
 
         [TestMethod]
         public async Task GetNonexistentFileTest()
         {
-            var response = await GetInvalidTest("../../../SimpleFTP.Tests/TestFiles/NonexistentFile.txt");
-            Assert.AreEqual("-1", response);
-
-            CloseClientAndServer();
+            try
+            {
+                var response = await GetInvalidTest("../../../SimpleFTP.Tests/TestFiles/NonexistentFile.txt");
+                Assert.AreEqual("-1", response);
+            }
+            finally
+            {
+                CloseClientAndServer();
+            }
         }
 
         [TestMethod]
         public async Task DirectoryToGetTest()
         {
-            var response = await GetInvalidTest("../../../SimpleFTP.Tests/TestFiles");
-            Assert.AreEqual("-1", response);
-
-            CloseClientAndServer();
+            try
+            {
+                var response = await GetInvalidTest("../../../SimpleFTP.Tests/TestFiles");
+                Assert.AreEqual("-1", response);
+            }
+            finally
+            {
+                CloseClientAndServer();
+            }
         }
 
         private async Task<string> GetInvalidTest(string path)
@@ -96,19 +116,29 @@ namespace SimpleFTP.Tests
         [TestMethod]
         public async Task FileToListTest()
         {
-            var response = await ListInvalidTest("../../../SimpleFTP.Tests/TestFiles/TestFile1.txt");
-            Assert.AreEqual("-1", response);
-
-            CloseClientAndServer();
+            try
+            {
+                var response = await ListInvalidTest("../../../SimpleFTP.Tests/TestFiles/TestFile1.txt");
+                Assert.AreEqual("-1", response);
+            }
+            finally
+            {
+                CloseClientAndServer();
+            }
         }
 
         [TestMethod]
         public async Task ListNonexistentDirectoryTest()
         {
-            var response = await ListInvalidTest("../../../SimpleFTP.Tests/NonexistentDirectory");
-            Assert.AreEqual("-1", response);
-
-            CloseClientAndServer();
+            try
+            {
+                var response = await ListInvalidTest("../../../SimpleFTP.Tests/NonexistentDirectory");
+                Assert.AreEqual("-1", response);
+            }
+            finally
+            {
+                CloseClientAndServer();
+            }
         }
 
         private async Task<string> ListInvalidTest(string path)
@@ -137,46 +167,62 @@ namespace SimpleFTP.Tests
         [TestMethod]
         public async Task MultipleClientsTest()
         {
-            RunClientAndServer();
-
             var client1 = new Client("localhost", 7777);
-            client1.Connect();
 
-            var response = await client.Get("../../../SimpleFTP.Tests/TestFiles/GetTestFile.txt");
-            var response1 = await client1.Get("../../../SimpleFTP.Tests/TestFiles/GetTestFile.txt");
+            try
+            {
+                RunClientAndServer();
+                
+                client1.Connect();
 
-            Assert.AreEqual(response, response1);
+                var response = await client.Get("../../../SimpleFTP.Tests/TestFiles/GetTestFile.txt");
+                var response1 = await client1.Get("../../../SimpleFTP.Tests/TestFiles/GetTestFile.txt");
 
-            client1.Disconnect();
+                Assert.AreEqual(response, response1);
+            }
+            finally
+            {
+                client1.Disconnect();
 
-            CloseClientAndServer();
+                CloseClientAndServer();
+            }
         }
 
         [TestMethod]
         public async Task MultipleRequestsTest()
         {
-            RunClientAndServer();
+            try
+            {
+                RunClientAndServer();
 
-            await client.Get("../../../SimpleFTP.Tests/TestFiles/GetTestFile.txt");
-            var response1 = await client.Get("../../../SimpleFTP.Tests/TestFiles/TestFile1.txt");
-            await client.Get("../../../SimpleFTP.Tests/TestFiles/TestFile2.txt");
-            var response4 = await client.List("../../../SimpleFTP.Tests/TestFiles");
+                await client.Get("../../../SimpleFTP.Tests/TestFiles/GetTestFile.txt");
+                var response1 = await client.Get("../../../SimpleFTP.Tests/TestFiles/TestFile1.txt");
+                await client.Get("../../../SimpleFTP.Tests/TestFiles/TestFile2.txt");
+                var response4 = await client.List("../../../SimpleFTP.Tests/TestFiles");
 
-            Assert.AreEqual(9, long.Parse(response1[0].ToString()));
-            Assert.AreEqual(4, int.Parse(response4[0].ToString()));
-
-            CloseClientAndServer();
+                Assert.AreEqual(9, long.Parse(response1[0].ToString()));
+                Assert.AreEqual(4, int.Parse(response4[0].ToString()));
+            }
+            finally
+            {
+                CloseClientAndServer();
+            }
         }
 
         [TestMethod]
         public async Task ListEmptyDirectoryTest()
         {
-            RunClientAndServer();
+            try
+            {
+                RunClientAndServer();
 
-            var response = await client.List("../../../SimpleFTP.Tests/TestFiles/SomeDirectory");
-            Assert.AreEqual("0", response);
-
-            CloseClientAndServer();
+                var response = await client.List("../../../SimpleFTP.Tests/TestFiles/SomeDirectory");
+                Assert.AreEqual("0", response);
+            }
+            finally
+            {
+                CloseClientAndServer();
+            }
         }
     }
 }
