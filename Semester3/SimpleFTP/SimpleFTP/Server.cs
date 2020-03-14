@@ -51,11 +51,13 @@ namespace SimpleFTP
 
                     if (command.StartsWith("1"))
                     {
-                        await ListResponse(path, writer);
+                        var response = List(path);
+                        await writer.WriteLineAsync(response);
                     }
                     else if (command.StartsWith("2"))
                     {
-                        await GetResponse(path, writer);
+                        var response = Get(path);
+                        await writer.WriteLineAsync(response);
                     }
                     else
                     {
@@ -65,14 +67,13 @@ namespace SimpleFTP
             });
         }
 
-        private async Task ListResponse(string path, StreamWriter writer)
+        private string List(string path)
         {
             var dirInfo = new DirectoryInfo(path);
 
             if (!dirInfo.Exists)
             {
-                await writer.WriteLineAsync("-1");
-                return;
+                return "-1";
             }
 
             var files = dirInfo.GetFiles();
@@ -92,20 +93,19 @@ namespace SimpleFTP
                 response += $" {directory.FullName.Substring(fullPath.Length + 1)} true";
             }
 
-            await writer.WriteLineAsync(response);
+            return response;
         }
 
-        private async Task GetResponse(string path, StreamWriter writer)
+        private string Get(string path)
         {
             var fileInfo = new FileInfo(path);
 
             if(!fileInfo.Exists)
             {
-                await writer.WriteLineAsync("-1");
-                return;
+                return "-1";
             }
 
-            await writer.WriteLineAsync($"{fileInfo.Length} {File.ReadAllBytes(path)}");
+            return $"{fileInfo.Length} {File.ReadAllBytes(path)}";
         }
 
         /// <summary>

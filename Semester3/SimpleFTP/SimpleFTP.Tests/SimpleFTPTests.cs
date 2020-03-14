@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Text;
 using System.Threading.Tasks;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -63,9 +64,6 @@ namespace SimpleFTP.Tests
 
             var responseSplitted = response.Split(' ');
             Assert.AreEqual(91, long.Parse(responseSplitted[0]));
-
-            var expectedString = "Ah, Mister Secretary Mister Burr, sir Did'ya hear the news about good old General Mercer No";
-            //   Assert.AreEqual(Encoding.ASCII.GetBytes(expectedString), Encoding.ASCII.GetBytes(responseSplitted[1]));
 
             CloseClientAndServer();
         }
@@ -134,6 +132,51 @@ namespace SimpleFTP.Tests
             {
                 server.Stop();
             }
+        }
+
+        [TestMethod]
+        public async Task MultipleClientsTest()
+        {
+            RunClientAndServer();
+
+            var client1 = new Client("localhost", 7777);
+            client1.Connect();
+
+            var response = await client.Get("../../../SimpleFTP.Tests/TestFiles/GetTestFile.txt");
+            var response1 = await client1.Get("../../../SimpleFTP.Tests/TestFiles/GetTestFile.txt");
+
+            Assert.AreEqual(response, response1);
+
+            client1.Disconnect();
+
+            CloseClientAndServer();
+        }
+
+        [TestMethod]
+        public async Task MultipleRequestsTest()
+        {
+            RunClientAndServer();
+
+            await client.Get("../../../SimpleFTP.Tests/TestFiles/GetTestFile.txt");
+            var response1 = await client.Get("../../../SimpleFTP.Tests/TestFiles/TestFile1.txt");
+            await client.Get("../../../SimpleFTP.Tests/TestFiles/TestFile2.txt");
+            var response4 = await client.List("../../../SimpleFTP.Tests/TestFiles");
+
+            Assert.AreEqual(9, long.Parse(response1[0].ToString()));
+            Assert.AreEqual(4, int.Parse(response4[0].ToString()));
+
+            CloseClientAndServer();
+        }
+
+        [TestMethod]
+        public async Task ListEmptyDirectoryTest()
+        {
+            RunClientAndServer();
+
+            var response = await client.List("../../../SimpleFTP.Tests/TestFiles/SomeDirectory");
+            Assert.AreEqual("0", response);
+
+            CloseClientAndServer();
         }
     }
 }
