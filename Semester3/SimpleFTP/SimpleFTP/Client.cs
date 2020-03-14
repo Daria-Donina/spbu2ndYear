@@ -8,7 +8,7 @@ namespace SimpleFTP
     /// <summary>
     /// Class implementing a network client that allows to execute some requests.
     /// </summary>
-    public class Client
+    public class Client : IDisposable
     {
         private readonly string hostname;
 
@@ -80,10 +80,14 @@ namespace SimpleFTP
         /// <summary>
         /// Closes the connection.
         /// </summary>
-        public void Disconnect()
+        public void Dispose()
         {
             writer.Close();
+            writer.Dispose();
+
             reader.Close();
+            reader.Dispose();
+
             tcpClient.Close();
             tcpClient.Dispose();
         }

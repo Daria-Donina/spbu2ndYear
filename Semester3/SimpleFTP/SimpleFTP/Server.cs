@@ -1,6 +1,8 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Net;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,7 +11,7 @@ namespace SimpleFTP
     /// <summary>
     /// Class implementing a network server that handles some requests.
     /// </summary>
-    public class Server
+    public class Server : IDisposable
     {
         private readonly CancellationTokenSource cancellationToken = new CancellationTokenSource();
 
@@ -67,7 +69,7 @@ namespace SimpleFTP
             });
         }
 
-        private string List(string path)
+        private static string List(string path)
         {
             var dirInfo = new DirectoryInfo(path);
 
@@ -79,24 +81,26 @@ namespace SimpleFTP
             var files = dirInfo.GetFiles();
             var directories = dirInfo.GetDirectories();
 
-            var response = $"{files.Length + directories.Length}";
+            var response = new StringBuilder();
+
+            response.Append($"{files.Length + directories.Length}");
 
             var fullPath = dirInfo.FullName;
             
             foreach (var file in files)
             {
-                response += $" {file.FullName.Substring(fullPath.Length + 1)} false";
+                response.Append($" {file.FullName.Substring(fullPath.Length + 1)} false");
             }
 
             foreach (var directory in directories)
             {
-                response += $" {directory.FullName.Substring(fullPath.Length + 1)} true";
+                response.Append($" {directory.FullName.Substring(fullPath.Length + 1)} true");
             }
 
-            return response;
+            return response.ToString();
         }
 
-        private string Get(string path)
+        private static string Get(string path)
         {
             var fileInfo = new FileInfo(path);
 
@@ -116,5 +120,10 @@ namespace SimpleFTP
             cancellationToken.Cancel();
             listener.Stop();
         }
+
+        /// <summary>
+        /// Releases resources used by the server.
+        /// </summary>
+        public void Dispose() => cancellationToken.Dispose();
     }
 }

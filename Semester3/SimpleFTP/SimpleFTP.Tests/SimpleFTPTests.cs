@@ -29,8 +29,9 @@ namespace SimpleFTP.Tests
 
         private void CloseClientAndServer()
         {
-            client.Disconnect();
+            client.Dispose();
             server.Stop();
+            server.Dispose();
         }
 
         [TestMethod]
@@ -182,7 +183,7 @@ namespace SimpleFTP.Tests
             }
             finally
             {
-                client1.Disconnect();
+                client1.Dispose();
 
                 CloseClientAndServer();
             }
