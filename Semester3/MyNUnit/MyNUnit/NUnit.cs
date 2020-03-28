@@ -4,6 +4,7 @@ using System.Text;
 using System.Reflection;
 using System.IO;
 using System.Threading.Tasks;
+using System.Diagnostics;
 
 namespace MyNUnit
 {
@@ -64,7 +65,7 @@ namespace MyNUnit
 
                     BeforeClassAndAfterClassMethodsExecution(beforeClassMethods);
 
-                    TestExecution(beforeMethods, afterMethods, testMethods);
+                    ExecuteTests(beforeMethods, afterMethods, testMethods);
 
                     BeforeClassAndAfterClassMethodsExecution(afterClassMethods);
                 }
@@ -84,7 +85,7 @@ namespace MyNUnit
             }
         }
 
-        private static void TestExecution(List<MethodInfo> beforeMethods, List<MethodInfo> afterMethods, 
+        private static void ExecuteTests(List<MethodInfo> beforeMethods, List<MethodInfo> afterMethods, 
             List<MethodInfo> testMethods)
         {
             foreach (var method in beforeMethods)
@@ -98,22 +99,38 @@ namespace MyNUnit
                 
                 if (!(attribute.Ignore is null))
                 {
-                    //и возможно нужно вернуть само сообщение
+                    WriteMessage($"Test {test.Name} ignored\n {attribute.Ignore}");
+
                     break;
                 }
 
-                if (!(attribute.Expected is null))
-                {
-                    //что-то сделать
-                }
+                var startTime = Stopwatch.StartNew();
 
                 try
                 {
-                    test.Invoke(test.DeclaringType, null);
+                    var result = test.Invoke(test.DeclaringType, null);
+
+                    startTime.Stop();
+
+                    WriteMessage($"Test {test.Name} passed\n Result: {result}");
                 }
                 catch (Exception exception)
                 {
-                    //проверить, совпадает ли тип исключения с ожидаемым, тем самым выяснив упал тест или прошел
+                    startTime.Stop();
+
+                    if (attribute.Expected == exception.GetType())
+                    {
+                        WriteMessage($"Test {test.Name} passed");
+                    }
+                    else
+                    {
+                        WriteMessage($"Test {test.Name} failed\n Expected {attribute.Expected}," +
+                            $" but received {exception.GetType()}");
+                    }
+                }
+                finally
+                {
+                    WriteMessage($"Execution time: {startTime.Elapsed}\n \n");
                 }
             }
 
@@ -122,5 +139,7 @@ namespace MyNUnit
                 method.Invoke(method.DeclaringType, null);
             }
         }
+
+        private static void WriteMessage(string message) => Console.WriteLine(message);
     }
 }
