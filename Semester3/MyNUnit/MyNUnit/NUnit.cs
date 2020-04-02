@@ -5,6 +5,7 @@ using System.Reflection;
 using System.IO;
 using System.Threading.Tasks;
 using System.Diagnostics;
+using System.Collections.Concurrent;
 
 namespace MyNUnit
 {
@@ -14,27 +15,28 @@ namespace MyNUnit
         {
             var assemblyPaths = Directory.GetFiles(path, "*.dll");
 
-            var assemblies = new List<Assembly>();
+            var assemblies = new BlockingCollection<Assembly>();
             foreach (var assemblyPath in assemblyPaths)
             {
                 assemblies.Add(Assembly.LoadFrom(assemblyPath));
             }
 
-            foreach(var assembly in assemblies)
+            Parallel.ForEach(assemblies, (assembly) =>
             {
                 var testClasses = assembly.GetTypes();
 
-                foreach (var testClass in testClasses)
+                Parallel.ForEach(testClasses, (testClass) =>
                 {
-                    var beforeClassMethods = new List<MethodInfo>();
-                    var afterClassMethods = new List<MethodInfo>();
-                    var beforeMethods = new List<MethodInfo>();
-                    var afterMethods = new List<MethodInfo>();
-                    var testMethods = new List<MethodInfo>();
+                    var beforeClassMethods = new BlockingCollection<MethodInfo>();
+                    var afterClassMethods = new BlockingCollection<MethodInfo>();
+                    var beforeMethods = new BlockingCollection<MethodInfo>();
+                    var afterMethods = new BlockingCollection<MethodInfo>();
+                    var testMethods = new BlockingCollection<MethodInfo>();
 
-                    foreach (var method in testClass.GetMethods())
+                    #region initialization of collections
+                    Parallel.ForEach(testClass.GetMethods(), (method) =>
                     {
-                        foreach (var attribute in Attribute.GetCustomAttributes(method))
+                        Parallel.ForEach(Attribute.GetCustomAttributes(method), (attribute) =>
                         {
                             if (attribute.GetType() == typeof(BeforeClassAttribute))
                             {
@@ -60,21 +62,28 @@ namespace MyNUnit
                             {
                                 testMethods.Add(method);
                             }
-                        }
-                    }
+                        });
+                    });
+                    #endregion
 
-                    BeforeClassAndAfterClassMethodsExecution(beforeClassMethods);
+                    RunBeforeClassMethods(beforeClassMethods);
 
                     ExecuteTests(beforeMethods, afterMethods, testMethods);
 
-                    BeforeClassAndAfterClassMethodsExecution(afterClassMethods);
-                }
-            }
+                    RunAfterClassMethods(afterClassMethods);
+                });
+            });
         }
 
-        private static void BeforeClassAndAfterClassMethodsExecution(List<MethodInfo> methods)
+        private static void RunBeforeClassMethods(BlockingCollection<MethodInfo> methods) 
+            => RunBeforeOrAfterClassMethods(methods);
+
+        private static void RunAfterClassMethods(BlockingCollection<MethodInfo> methods) 
+            => RunBeforeOrAfterClassMethods(methods);
+
+        private static void RunBeforeOrAfterClassMethods(BlockingCollection<MethodInfo> methods)
         {
-            foreach (var method in methods)
+            Parallel.ForEach(methods, (method) =>
             {
                 if (!method.IsStatic)
                 {
@@ -82,26 +91,28 @@ namespace MyNUnit
                 }
 
                 method.Invoke(null, null);
-            }
+            });
         }
 
-        private static void ExecuteTests(List<MethodInfo> beforeMethods, List<MethodInfo> afterMethods, 
-            List<MethodInfo> testMethods)
+        private static void ExecuteTests(
+            BlockingCollection<MethodInfo> beforeMethods, 
+            BlockingCollection<MethodInfo> afterMethods,
+            BlockingCollection<MethodInfo> testMethods)
         {
-            foreach (var method in beforeMethods)
+            Parallel.ForEach(beforeMethods, (method) =>
             {
                 method.Invoke(method.DeclaringType, null);
-            }
+            });
 
-            foreach (var test in testMethods)
+            Parallel.ForEach(testMethods, (test, state) =>
             {
-                var attribute = test.GetCustomAttribute<TestAttribute>(false);
-                
+                var attribute = test.GetCustomAttribute<TestAttribute>();
+
                 if (!(attribute.Ignore is null))
                 {
                     WriteMessage($"Test {test.Name} ignored\n {attribute.Ignore}");
 
-                    break;
+                    state.Break();
                 }
 
                 var startTime = Stopwatch.StartNew();
@@ -132,12 +143,12 @@ namespace MyNUnit
                 {
                     WriteMessage($"Execution time: {startTime.Elapsed}\n \n");
                 }
-            }
+            });
 
-            foreach (var method in afterMethods)
+            Parallel.ForEach(afterMethods, (method) =>
             {
                 method.Invoke(method.DeclaringType, null);
-            }
+            });
         }
 
         private static void WriteMessage(string message) => Console.WriteLine(message);
