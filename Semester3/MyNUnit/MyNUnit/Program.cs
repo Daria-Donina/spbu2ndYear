@@ -1,6 +1,9 @@
-﻿public static class Program
+﻿namespace MyNUnit
 {
-    public static void Main()
+    static class Program
     {
+        static void Main(string[] args)
+        {
+        }
     }
 }
