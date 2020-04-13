@@ -4,10 +4,11 @@ using System.IO;
 using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections.Concurrent;
+using MyNUnit.Attributes;
 
 namespace MyNUnit
 {
-    class NUnit
+    public class NUnit
     {
         public static void RunTests(string path)
         {
@@ -73,22 +74,43 @@ namespace MyNUnit
             });
         }
 
-        private static void RunBeforeClassMethods(BlockingCollection<MethodInfo> methods) 
-            => RunBeforeOrAfterClassMethods(methods);
-
-        private static void RunAfterClassMethods(BlockingCollection<MethodInfo> methods) 
-            => RunBeforeOrAfterClassMethods(methods);
-
-        private static void RunBeforeOrAfterClassMethods(BlockingCollection<MethodInfo> methods)
+        private static void RunBeforeClassMethods(BlockingCollection<MethodInfo> methods)
         {
             Parallel.ForEach(methods, (method) =>
             {
-                if (!method.IsStatic)
+                try
                 {
-                    throw new InvalidOperationException("Method with BeforeClass or AfterClass attribute must be static");
-                }
+                    if (!method.IsStatic)
+                    {
+                        throw new InvalidOperationException("Method with BeforeClass attribute must be static");
+                    }
 
-                method.Invoke(null, null);
+                    method.Invoke(null, null);
+                }
+                catch (Exception e)
+                {
+                    WriteMessage($"'{method.Name}' has failed with an exception {e.GetType()}: '{e.Message}'");
+                }
+            });
+        }
+
+        private static void RunAfterClassMethods(BlockingCollection<MethodInfo> methods)
+        {
+            Parallel.ForEach(methods, (method) =>
+            {
+                try
+                {
+                    if (!method.IsStatic)
+                    {
+                        throw new InvalidOperationException("Method with AfterClass attribute must be static");
+                    }
+
+                    method.Invoke(null, null);
+                }
+                catch (Exception e)
+                {
+                    WriteMessage($"'{method.Name}' has failed with an exception {e.GetType()}: '{e.Message}'");
+                }
             });
         }
 

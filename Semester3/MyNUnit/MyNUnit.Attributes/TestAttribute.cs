@@ -1,8 +1,8 @@
 ﻿using System;
 
-namespace MyNUnit
+namespace MyNUnit.Attributes
 {
-    class TestAttribute : Attribute
+    public class TestAttribute : Attribute
     {
         public Type Expected { get; set; }
 
