@@ -18,6 +18,8 @@ namespace MyThreadPool
         /// </summary>
         public int ActiveThreads { get; private set; }
         private readonly AutoResetEvent taskAdded = new AutoResetEvent(false);
+        private readonly object locker = new object();
+        private readonly ManualResetEvent threadpoolShut = new ManualResetEvent(false);
 
         public MyThreadPool(int threadNumber)
         {
@@ -42,6 +44,15 @@ namespace MyThreadPool
         {
             while (true)
             {
+                if (cancellationTokenSource.IsCancellationRequested && actions.IsEmpty)
+                {
+                    lock (locker)
+                    {
+                        --ActiveThreads;
+                        return;
+                    }
+                }
+
                 if (actions.TryDequeue(out Action action))
                 {
                     action();
@@ -81,7 +92,15 @@ namespace MyThreadPool
         /// <summary>
         /// Closes the threadpool.
         /// </summary>
-        public void Shutdown() => cancellationTokenSource.Cancel();
+        public void Shutdown()
+        {
+            cancellationTokenSource.Cancel();
+
+            while (ActiveThreads != 0)
+            {
+                taskAdded.Set();
+            }
+        }
 
         /// <summary>
         /// Represents an asynchronous operation.
@@ -150,12 +169,17 @@ namespace MyThreadPool
                     {
                         tasksQueue.Enqueue(newTask.Execute);
                     }
-                    tasksQueue.Enqueue(newTask.Execute);
+
                     return newTask;
                 }
 
                 lock (queueLock)
                 {
+                    if (threadPool.cancellationTokenSource.IsCancellationRequested)
+                    {
+                        throw new ShutdownException();
+                    }
+
                     threadPool.AddAction(newTask.Execute);
                 }
                 

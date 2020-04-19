@@ -229,5 +229,126 @@ namespace MyThreadPool.Tests
 
             Assert.AreEqual("task 1 task 2 task 3", task3.Result);
         }
+
+        [TestMethod]
+        public void AddTasksFromDifferentThreads()
+        {
+            var threadpool = new MyThreadPool(5);
+            var threads = new Thread[10];
+            var tasks = new IMyTask<int>[10];
+
+            for (var i = 0; i < threads.Length; ++i)
+            {
+                var localI = i;
+                threads[i] = new Thread(() =>
+                {
+                    tasks[localI] = threadpool.AddTask(() =>
+                    {
+                        Thread.Sleep(100);
+                        return localI * 2 - 1;
+                    });
+                });
+            }
+
+            for (int i = 0; i < threads.Length; ++i)
+            {
+                threads[i].Start();
+            }
+
+            for (int i = 0; i < threads.Length; ++i)
+            {
+                threads[i].Join();
+            }
+
+            for (int i = 0; i < tasks.Length; ++i)
+            {
+                Assert.AreEqual(i * 2 - 1, tasks[i].Result);
+            }
+        }
+
+        [TestMethod]
+        public void ThreadSafetyTest()
+        {
+            var threadpool = new MyThreadPool(5);
+            var threads = new Thread[10];
+            var tasks = new IMyTask<int>[6];
+            var task1Continues = new IMyTask<int>[2];
+            var task2Continue = new IMyTask<int>[1];
+
+            for (var i = 0; i < 4; ++i)
+            {
+                var localI = i;
+                threads[i] = new Thread(() =>
+                {
+                    tasks[localI] = threadpool.AddTask(() =>
+                    {
+                        Thread.Sleep(100);
+                        return localI * 2 - 1;
+                    });
+                });
+            }
+
+            for (var i = 4; i < 6; ++i)
+            {
+                var localI = i;
+                threads[i] = new Thread(() =>
+                {
+                    task1Continues[localI - 4] = tasks[1].ContinueWith(x => x + 5);
+                });
+            }
+
+            threads[6] = new Thread(() =>
+            {
+                task2Continue[0] = tasks[2].ContinueWith(x => x * 3);
+            });
+
+            for (var i = 7; i < 9; ++i)
+            {
+                var localI = i;
+                threads[i] = new Thread(() =>
+                {
+                    tasks[localI - 3] = threadpool.AddTask(() =>
+                    {
+                        Thread.Sleep(100);
+                        return localI + 7;
+                    });
+                });
+            }
+
+            threads[9] = new Thread(() =>
+            {
+                threadpool.Shutdown();
+            });
+
+            for (int i = 0; i < threads.Length; ++i)
+            {
+                threads[i].Start();
+            }
+
+            for (int i = 0; i < threads.Length; ++i)
+            {
+                threads[i].Join();
+            }
+
+            for (int i = 0; i < 4; ++i)
+            {
+                Assert.AreEqual(i * 2 - 1, tasks[i].Result);
+            }
+
+            for (int i = 4; i < 6; ++i)
+            {
+                Assert.AreEqual(i + 10, tasks[i].Result);
+            }
+
+            Assert.AreEqual(6, task1Continues[0].Result);
+            Assert.AreEqual(6, task1Continues[1].Result);
+
+            for (int i = 4; i < 6; ++i)
+            {
+                Assert.AreEqual(i + 10, tasks[i].Result);
+            }
+
+            Assert.AreEqual(9, task2Continue[0].Result);
+        }
     }
 }
