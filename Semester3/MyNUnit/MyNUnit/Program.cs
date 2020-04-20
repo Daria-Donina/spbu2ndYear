@@ -4,6 +4,7 @@
     {
         static void Main(string[] args)
         {
+            NUnit.RunTests(args[0]);
         }
     }
 }

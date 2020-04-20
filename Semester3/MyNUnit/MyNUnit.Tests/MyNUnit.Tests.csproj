@@ -15,6 +15,7 @@
   <ItemGroup>
     <ProjectReference Include="..\BeforeClassTestProject\BeforeClassTestProject.csproj" />
     <ProjectReference Include="..\MyNUnit\MyNUnit.csproj" />
+    <ProjectReference Include="..\NUnitSimpleTest\NUnitSimpleTest.csproj" />
   </ItemGroup>
 
 </Project>

@@ -11,7 +11,7 @@ using System.Collections.Generic;
 
 namespace MyNUnit
 {
-    public class NUnit
+    public static class NUnit
     {
         public static void RunTests(string path)
         {
@@ -27,18 +27,22 @@ namespace MyNUnit
             {
                 var testClasses = assembly.GetTypes();
 
-                Parallel.ForEach(testClasses, async (testClass) =>
+                Parallel.ForEach(testClasses, (testClass) =>
                 {
+                    var testClassInstance = Activator.CreateInstance(testClass);
+
                     var methods = testClass.GetMethods();
 
-                    await Task.Run(() => RunBeforeClassMethods(methods.Where(method => MethodSelector<BeforeClassAttribute>(method))));
+                    RunBeforeClassMethods(methods.Where(method => MethodSelector<BeforeClassAttribute>(method)));
 
-                    await Task.Run(() => ExecuteTests(
+                    ExecuteTests(
+                        testClassInstance,
                         methods.Where(method => MethodSelector<BeforeAttribute>(method)),
                         methods.Where(method => MethodSelector<TestAttribute>(method)),
-                        methods.Where(method => MethodSelector<AfterClassAttribute>(method))));
+                        methods.Where(method => MethodSelector<AfterClassAttribute>(method)));
 
-                    await Task.Run(() => RunAfterClassMethods(methods.Where(method => MethodSelector<AfterClassAttribute>(method))));
+                    RunAfterClassMethods(methods.Where(method => MethodSelector<AfterClassAttribute>(method)));
+
                 });
             });
         }
@@ -50,7 +54,8 @@ namespace MyNUnit
             if (attributes.Count() > 1)
             {
                 //какое?
-                throw new Exception();
+                //throw new Exception();
+                return false;
             }
             else if (attributes.Count() == 0)
             {
@@ -60,7 +65,8 @@ namespace MyNUnit
             if (method.GetParameters().Length != 0 || method.ReturnType != typeof(void))
             {
                 //какое?
-                throw new Exception();
+                //throw new Exception();
+                return false;
             }
 
             if (typeof(T) == typeof(BeforeClassAttribute) || typeof(T) == typeof(AfterClassAttribute))
@@ -68,7 +74,8 @@ namespace MyNUnit
                 if (!method.IsStatic)
                 {
                     //какое?
-                    throw new Exception();
+                    // throw new Exception();
+                    return false;
                 }
             }
 
@@ -105,70 +112,61 @@ namespace MyNUnit
             });
         }
 
-        private async static void ExecuteTests(
+        private static void ExecuteTests(
+            object testClassInstance,
             IEnumerable<MethodInfo> beforeMethods,
-            IEnumerable<MethodInfo> afterMethods,
-            IEnumerable<MethodInfo> testMethods)
+            IEnumerable<MethodInfo> testMethods,
+            IEnumerable<MethodInfo> afterMethods)
         {
-            await Task.Run(() =>
+            Parallel.ForEach(beforeMethods, (method) =>
             {
-                Parallel.ForEach(beforeMethods, (method) =>
-                {
-                    method.Invoke(method.DeclaringType, null);
-                });
+                method.Invoke(testClassInstance, null);
             });
 
-            await Task.Run(() =>
+            Parallel.ForEach(testMethods, (test, state) =>
             {
-                Parallel.ForEach(testMethods, (test, state) =>
+                var attribute = test.GetCustomAttribute<TestAttribute>();
+
+                if (!(attribute.Ignore is null))
                 {
-                    var attribute = test.GetCustomAttribute<TestAttribute>();
+                    WriteMessage($"Test {test.Name} ignored\n {attribute.Ignore}");
 
-                    if (!(attribute.Ignore is null))
+                    state.Break();
+                }
+
+                var startTime = Stopwatch.StartNew();
+
+                try
+                {
+                    test.Invoke(testClassInstance, null);
+
+                    startTime.Stop();
+
+                    WriteMessage($"Test {test.Name} passed");
+                }
+                catch (Exception exception)
+                {
+                    startTime.Stop();
+
+                    if (attribute.Expected == exception.GetType())
                     {
-                        WriteMessage($"Test {test.Name} ignored\n {attribute.Ignore}");
-
-                        state.Break();
+                        WriteMessage($"Test {test.Name} passed");
                     }
-
-                    var startTime = Stopwatch.StartNew();
-
-                    try
+                    else
                     {
-                        var result = test.Invoke(test.DeclaringType, null);
-
-                        startTime.Stop();
-
-                        WriteMessage($"Test {test.Name} passed\n Result: {result}");
+                        WriteMessage($"Test {test.Name} failed with an exception {exception.GetType()}: {exception.Message}");
                     }
-                    catch (Exception exception)
-                    {
-                        startTime.Stop();
-
-                        if (attribute.Expected == exception.GetType())
-                        {
-                            WriteMessage($"Test {test.Name} passed");
-                        }
-                        else
-                        {
-                            WriteMessage($"Test {test.Name} failed\n Expected {attribute.Expected}," +
-                                $" but received {exception.GetType()}");
-                        }
-                    }
-                    finally
-                    {
-                        WriteMessage($"Execution time: {startTime.Elapsed}\n \n");
-                    }
-                });
+                }
+                finally
+                {
+                    WriteMessage($"Execution time: {startTime.Elapsed}\n \n");
+                }
             });
 
 
-            await Task.Run(() =>
+            Parallel.ForEach(afterMethods, (method) =>
             {
-                Parallel.ForEach(afterMethods, (method) =>
-                {
-                    method.Invoke(method.DeclaringType, null);
-                });
+                method.Invoke(testClassInstance, null);
             });
         }
 

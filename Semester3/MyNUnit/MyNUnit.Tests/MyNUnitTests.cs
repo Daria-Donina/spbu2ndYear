@@ -1,6 +1,8 @@
 using System;
 using NUnit.Framework;
 using BeforeClassTestProject;
+using System.Threading;
+using NUnitSimpleTest;
 
 namespace MyNUnit.Tests
 {
@@ -18,6 +20,13 @@ namespace MyNUnit.Tests
             Assert.IsFalse(BeforeClassTests.IsNonVoidMethodPassed);
             Assert.IsFalse(BeforeClassTests.IsMethodWithParametersPassed);
             Assert.IsTrue(BeforeClassTests.IsTestMethodPassed);
+        }
+
+        [Test]
+        public void SimpleNUnitTest()
+        {
+            NUnit.RunTests("../../../../NUnitSimpleTest/bin/Debug/netcoreapp3.1");
+            Assert.IsTrue(NUnitSimpleTestClass.IsTestPassed);
         }
     }
 }
