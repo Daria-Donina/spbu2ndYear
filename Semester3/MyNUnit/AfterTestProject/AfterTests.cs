@@ -5,7 +5,9 @@ namespace AfterTestProject
 {
     public class AfterTests
     {
-        public static int Count { get; private set; }
+        private static int count;
+
+        public static int Count { get => count; private set => count = value; }
         private bool IsTestMethod1Passed { get; set; }
         private bool IsTestMethod2Passed { get; set; }
 
@@ -15,7 +17,7 @@ namespace AfterTestProject
             if (IsTestMethod1Passed || IsTestMethod2Passed)
             {
                 Thread.Sleep(500);
-                Count++;
+                Interlocked.Increment(ref count);
             }
         }
 
@@ -25,7 +27,7 @@ namespace AfterTestProject
             if (IsTestMethod1Passed || IsTestMethod2Passed)
             {
                 Thread.Sleep(700);
-                Count++;
+                Interlocked.Increment(ref count);
             }
         }
 

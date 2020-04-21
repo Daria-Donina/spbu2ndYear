@@ -5,8 +5,8 @@ namespace BeforeClassTestProject
 {
     public class BeforeClassTests
     {
-        public static bool IsBeforeClassCorrectMethod1Passed { get; private set; }
-        public static bool IsBeforeClassCorrectMethod2Passed { get; private set; }
+        private static bool IsBeforeClassCorrectMethod1Passed { get; set; }
+        private static bool IsBeforeClassCorrectMethod2Passed { get; set; }
 
         public static bool IsTestMethodPassed { get; private set; }
 

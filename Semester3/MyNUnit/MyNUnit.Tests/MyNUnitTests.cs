@@ -22,8 +22,6 @@ namespace MyNUnit.Tests
         {
             NUnit.RunTests("../../../../BeforeClassTestProject/bin/Debug/netcoreapp3.1");
 
-            Assert.IsTrue(BeforeClassTests.IsBeforeClassCorrectMethod1Passed);
-            Assert.IsTrue(BeforeClassTests.IsBeforeClassCorrectMethod2Passed);
             Assert.IsTrue(BeforeClassTests.IsTestMethodPassed);
         }
 
@@ -42,6 +40,7 @@ namespace MyNUnit.Tests
 
             Assert.IsTrue(BeforeTests.IsTestMethod1Passed);
             Assert.IsTrue(BeforeTests.IsTestMethod2Passed);
+            Assert.AreEqual(4, BeforeTests.Count);
         }
 
         [Test]
