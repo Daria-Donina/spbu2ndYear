@@ -1,8 +1,9 @@
-using System;
 using NUnit.Framework;
 using BeforeClassTestProject;
-using System.Threading;
+using AfterClassTestProject;
 using NUnitSimpleTest;
+using BeforeTestProject;
+using AfterTestProject;
 
 namespace MyNUnit.Tests
 {
@@ -10,23 +11,45 @@ namespace MyNUnit.Tests
     public class MyNUnitTests
     {
         [Test]
+        public void SimpleNUnitTest()
+        {
+            NUnit.RunTests("../../../../NUnitSimpleTest/bin/Debug/netcoreapp3.1");
+            Assert.IsTrue(NUnitSimpleTestClass.IsTestPassed);
+        }
+
+        [Test]
         public void BeforeClassTest()
         {
             NUnit.RunTests("../../../../BeforeClassTestProject/bin/Debug/netcoreapp3.1");
 
             Assert.IsTrue(BeforeClassTests.IsBeforeClassCorrectMethod1Passed);
             Assert.IsTrue(BeforeClassTests.IsBeforeClassCorrectMethod2Passed);
-            Assert.IsFalse(BeforeClassTests.IsNonStaticMethodPassed);
-            Assert.IsFalse(BeforeClassTests.IsNonVoidMethodPassed);
-            Assert.IsFalse(BeforeClassTests.IsMethodWithParametersPassed);
             Assert.IsTrue(BeforeClassTests.IsTestMethodPassed);
         }
 
         [Test]
-        public void SimpleNUnitTest()
+        public void AfterClassTest()
         {
-            NUnit.RunTests("../../../../NUnitSimpleTest/bin/Debug/netcoreapp3.1");
-            Assert.IsTrue(NUnitSimpleTestClass.IsTestPassed);
+            NUnit.RunTests("../../../../AfterClassTestProject/bin/Debug/netcoreapp3.1");
+
+            Assert.AreEqual(1, AfterClassTests.Count);
+        }
+
+        [Test]
+        public void BeforeTest()
+        {
+            NUnit.RunTests("../../../../BeforeTestProject/bin/Debug/netcoreapp3.1");
+
+            Assert.IsTrue(BeforeTests.IsTestMethod1Passed);
+            Assert.IsTrue(BeforeTests.IsTestMethod2Passed);
+        }
+
+        [Test]
+        public void AfterTest()
+        {
+            NUnit.RunTests("../../../../AfterTestProject/bin/Debug/netcoreapp3.1");
+
+            Assert.AreEqual(4, AfterTests.Count);
         }
     }
 }

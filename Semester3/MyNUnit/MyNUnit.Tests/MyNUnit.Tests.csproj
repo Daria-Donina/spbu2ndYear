@@ -13,7 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\AfterClassTestProject\AfterClassTestProject.csproj" />
+    <ProjectReference Include="..\AfterTestProject\AfterTestProject.csproj" />
     <ProjectReference Include="..\BeforeClassTestProject\BeforeClassTestProject.csproj" />
+    <ProjectReference Include="..\BeforeTestProject\BeforeTestProject.csproj" />
     <ProjectReference Include="..\MyNUnit\MyNUnit.csproj" />
     <ProjectReference Include="..\NUnitSimpleTest\NUnitSimpleTest.csproj" />
   </ItemGroup>

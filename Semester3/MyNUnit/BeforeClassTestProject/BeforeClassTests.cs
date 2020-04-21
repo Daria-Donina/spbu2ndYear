@@ -7,11 +7,6 @@ namespace BeforeClassTestProject
     {
         public static bool IsBeforeClassCorrectMethod1Passed { get; private set; }
         public static bool IsBeforeClassCorrectMethod2Passed { get; private set; }
-        public static bool IsNonStaticMethodPassed { get; private set; }
-
-        public static bool IsNonVoidMethodPassed { get; private set; }
-
-        public static bool IsMethodWithParametersPassed { get; private set; }
 
         public static bool IsTestMethodPassed { get; private set; }
 
@@ -28,19 +23,6 @@ namespace BeforeClassTestProject
             Thread.Sleep(500);
             IsBeforeClassCorrectMethod2Passed = true;
         }
-
-        [BeforeClass]
-        public void NonStaticMethod() => IsNonStaticMethodPassed = true;
-
-        [BeforeClass]
-        public static string NonVoidMethod()
-        {
-            IsNonVoidMethodPassed = true;
-            return "";
-        }
-
-        [BeforeClass]
-        public static void MethodWithParameters(string value) => IsMethodWithParametersPassed = true;
 
         [Test]
         public void TestMethod()

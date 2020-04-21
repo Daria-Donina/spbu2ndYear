@@ -5,7 +5,6 @@ using System.Threading.Tasks;
 using System.Diagnostics;
 using System.Collections.Concurrent;
 using MyNUnit.Attributes;
-using System.Threading;
 using System.Linq;
 using System.Collections.Generic;
 
@@ -33,15 +32,17 @@ namespace MyNUnit
 
                     var methods = testClass.GetMethods();
 
-                    RunBeforeClassMethods(methods.Where(method => MethodSelector<BeforeClassAttribute>(method)));
+                    Parallel.ForEach(methods.Where(method => MethodSelector<BeforeClassAttribute>(method)),
+                        method => method.Invoke(null, null));
 
                     ExecuteTests(
                         testClassInstance,
                         methods.Where(method => MethodSelector<BeforeAttribute>(method)),
                         methods.Where(method => MethodSelector<TestAttribute>(method)),
-                        methods.Where(method => MethodSelector<AfterClassAttribute>(method)));
+                        methods.Where(method => MethodSelector<AfterAttribute>(method)));
 
-                    RunAfterClassMethods(methods.Where(method => MethodSelector<AfterClassAttribute>(method)));
+                    Parallel.ForEach(methods.Where(method => MethodSelector<AfterClassAttribute>(method)),
+                        method => method.Invoke(null, null));
 
                 });
             });
@@ -53,9 +54,7 @@ namespace MyNUnit
 
             if (attributes.Count() > 1)
             {
-                //какое?
-                //throw new Exception();
-                return false;
+                throw new InvalidOperationException($"Method {method.Name} must only have one attribute");
             }
             else if (attributes.Count() == 0)
             {
@@ -64,52 +63,18 @@ namespace MyNUnit
 
             if (method.GetParameters().Length != 0 || method.ReturnType != typeof(void))
             {
-                //какое?
-                //throw new Exception();
-                return false;
+                throw new InvalidOperationException($"Method {method.Name} return type must be void and it must not have parameters");
             }
 
             if (typeof(T) == typeof(BeforeClassAttribute) || typeof(T) == typeof(AfterClassAttribute))
             {
                 if (!method.IsStatic)
                 {
-                    //какое?
-                    // throw new Exception();
-                    return false;
+                    throw new InvalidOperationException($"Method {method.Name} must be static");
                 }
             }
 
             return true;
-        }
-
-        private static void RunBeforeClassMethods(IEnumerable<MethodInfo> methods)
-        {
-            Parallel.ForEach(methods, (method) =>
-            {
-                try
-                {
-                    method.Invoke(null, null);
-                }
-                catch (Exception e)
-                {
-                    WriteMessage($"'{method.Name}' has failed with an exception {e.GetType()}: '{e.Message}'");
-                }
-            });
-        }
-
-        private static void RunAfterClassMethods(IEnumerable<MethodInfo> methods)
-        {
-            Parallel.ForEach(methods, (method) =>
-            {
-                try
-                {
-                    method.Invoke(null, null);
-                }
-                catch (Exception e)
-                {
-                    WriteMessage($"'{method.Name}' has failed with an exception {e.GetType()}: '{e.Message}'");
-                }
-            });
         }
 
         private static void ExecuteTests(
@@ -118,16 +83,13 @@ namespace MyNUnit
             IEnumerable<MethodInfo> testMethods,
             IEnumerable<MethodInfo> afterMethods)
         {
-            Parallel.ForEach(beforeMethods, (method) =>
-            {
-                method.Invoke(testClassInstance, null);
-            });
-
             Parallel.ForEach(testMethods, (test, state) =>
             {
+                Parallel.ForEach(beforeMethods, method => method.Invoke(testClassInstance, null));
+
                 var attribute = test.GetCustomAttribute<TestAttribute>();
 
-                if (!(attribute.Ignore is null))
+                if (attribute.Ignore != null)
                 {
                     WriteMessage($"Test {test.Name} ignored\n {attribute.Ignore}");
 
@@ -142,7 +104,14 @@ namespace MyNUnit
 
                     startTime.Stop();
 
-                    WriteMessage($"Test {test.Name} passed");
+                    if (attribute.Expected != null)
+                    {
+                        WriteMessage($"Test {test.Name} did not throw expected exception");
+                    }
+                    else
+                    {
+                        WriteMessage($"Test {test.Name} passed");
+                    }
                 }
                 catch (Exception exception)
                 {
@@ -161,12 +130,8 @@ namespace MyNUnit
                 {
                     WriteMessage($"Execution time: {startTime.Elapsed}\n \n");
                 }
-            });
 
-
-            Parallel.ForEach(afterMethods, (method) =>
-            {
-                method.Invoke(testClassInstance, null);
+                Parallel.ForEach(afterMethods, method => method.Invoke(testClassInstance, null));
             });
         }
 
