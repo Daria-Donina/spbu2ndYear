@@ -1,7 +1,7 @@
 image: Visual Studio 2019
 
 before_build:
-  - nuget restore Semester4/Homework1/Homework1.sln
+  - nuget restore Semester3/MyNUnit/MyNUnit.sln
 
 build:
-  project: Semester4/Homework1/Homework1.sln
+  project: Semester3/MyNUnit/MyNUnit.sln
