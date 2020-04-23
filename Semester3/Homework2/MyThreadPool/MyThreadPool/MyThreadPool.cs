@@ -19,7 +19,6 @@ namespace MyThreadPool
         public int ActiveThreads { get; private set; }
         private readonly AutoResetEvent taskAdded = new AutoResetEvent(false);
         private readonly object locker = new object();
-        private readonly ManualResetEvent threadpoolShut = new ManualResetEvent(false);
 
         public MyThreadPool(int threadNumber)
         {
