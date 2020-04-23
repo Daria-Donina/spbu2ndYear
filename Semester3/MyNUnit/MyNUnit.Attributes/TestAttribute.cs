@@ -16,7 +16,5 @@ namespace MyNUnit.Attributes
         /// A reason why a method with this attribute is ignored. If this field is not null, test is ignored. 
         /// </summary>
         public string Ignore { get; set; }
-
-        public TestAttribute() { }
     }
 }
