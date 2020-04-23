@@ -1,37 +1,37 @@
-﻿using System.Threading;
+﻿using System;
+using System.Threading;
 using MyNUnit.Attributes;
 
 namespace BeforeClassTestProject
 {
     public class BeforeClassTests
     {
-        private static bool IsBeforeClassCorrectMethod1Passed { get; set; }
-        private static bool IsBeforeClassCorrectMethod2Passed { get; set; }
-
-        public static bool IsTestMethodPassed { get; private set; }
+        private static bool isBeforeClassCorrectMethod1Passed;
+        private static bool isBeforeClassCorrectMethod2Passed;
 
         [BeforeClass]
         public static void BeforeClassCorrectMethod1()
         {
             Thread.Sleep(1000);
-            IsBeforeClassCorrectMethod1Passed = true;
+            isBeforeClassCorrectMethod1Passed = true;
         }
 
         [BeforeClass]
         public static void BeforeClassCorrectMethod2()
         {
             Thread.Sleep(500);
-            IsBeforeClassCorrectMethod2Passed = true;
+            isBeforeClassCorrectMethod2Passed = true;
         }
 
         [Test]
         public void TestMethod()
         {
-            if (IsBeforeClassCorrectMethod1Passed && IsBeforeClassCorrectMethod2Passed)
+            if (!isBeforeClassCorrectMethod1Passed || !isBeforeClassCorrectMethod2Passed)
             {
-                Thread.Sleep(2000);
-                IsTestMethodPassed = true;
+                throw new Exception();
             }
+
+            Thread.Sleep(2000);
         }
     }
 }

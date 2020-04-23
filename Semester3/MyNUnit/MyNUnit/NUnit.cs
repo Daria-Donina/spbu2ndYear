@@ -12,7 +12,14 @@ namespace MyNUnit
 {
     public static class NUnit
     {
-        public static void RunTests(string path)
+        private static readonly object locker = new object();
+
+        /// <summary>
+        /// Runs tests from all assemblies from a given path.
+        /// </summary>
+        /// <param name="path"> A path containing assemblies with tests.</param>
+        /// <returns> Result of the tests.</returns>
+        public static TestInfo[] RunTests(string path)
         {
             var assemblyPaths = Directory.GetFiles(path, "*.dll");
 
@@ -22,11 +29,13 @@ namespace MyNUnit
                 assemblies.Add(Assembly.LoadFrom(assemblyPath));
             }
 
-            Parallel.ForEach(assemblies, (assembly) =>
+            var testInfos = new List<TestInfo>();
+
+            Parallel.ForEach(assemblies, assembly =>
             {
                 var testClasses = assembly.GetTypes();
 
-                Parallel.ForEach(testClasses, (testClass) =>
+                Parallel.ForEach(testClasses, testClass =>
                 {
                     var testClassInstance = Activator.CreateInstance(testClass);
 
@@ -35,7 +44,7 @@ namespace MyNUnit
                     Parallel.ForEach(methods.Where(method => MethodSelector<BeforeClassAttribute>(method)),
                         method => method.Invoke(null, null));
 
-                    ExecuteTests(
+                    var testInfosForClass = ExecuteTests(
                         testClassInstance,
                         methods.Where(method => MethodSelector<BeforeAttribute>(method)),
                         methods.Where(method => MethodSelector<TestAttribute>(method)),
@@ -44,8 +53,14 @@ namespace MyNUnit
                     Parallel.ForEach(methods.Where(method => MethodSelector<AfterClassAttribute>(method)),
                         method => method.Invoke(null, null));
 
+                    lock (locker)
+                    {
+                        testInfos = Queryable.Concat(testInfos.AsQueryable(), testInfosForClass).ToList();
+                    }
                 });
             });
+
+            return testInfos.ToArray();
         }
 
         private static bool MethodSelector<T>(MethodInfo method) where T : Attribute
@@ -77,64 +92,89 @@ namespace MyNUnit
             return true;
         }
 
-        private static void ExecuteTests(
+        private static TestInfo[] ExecuteTests(
             object testClassInstance,
             IEnumerable<MethodInfo> beforeMethods,
             IEnumerable<MethodInfo> testMethods,
             IEnumerable<MethodInfo> afterMethods)
         {
-            Parallel.ForEach(testMethods, (test, state) =>
+            var testInfos = new BlockingCollection<TestInfo>();
+
+            Parallel.ForEach(testMethods, test =>
             {
-                Parallel.ForEach(beforeMethods, method => method.Invoke(testClassInstance, null));
+                var testInfo = new TestInfo(test.Name);
 
                 var attribute = test.GetCustomAttribute<TestAttribute>();
 
                 if (attribute.Ignore != null)
                 {
-                    WriteMessage($"Test {test.Name} ignored\n {attribute.Ignore}");
-
-                    state.Break();
+                    testInfo.IsIgnored = true;
+                    testInfo.IgnoreReason = attribute.Ignore;
                 }
-
-                var startTime = Stopwatch.StartNew();
-
-                try
+                else
                 {
-                    test.Invoke(testClassInstance, null);
+                    Parallel.ForEach(beforeMethods, method => method.Invoke(testClassInstance, null));
 
-                    startTime.Stop();
+                    var time = Stopwatch.StartNew();
 
-                    if (attribute.Expected != null)
+                    try
                     {
-                        WriteMessage($"Test {test.Name} did not throw expected exception");
+                        test.Invoke(testClassInstance, null);
+
+                        time.Stop();
+                        testInfo.ExecutionTime = time.Elapsed;
+
+                        if (attribute.Expected is null)
+                        {
+                            testInfo.IsPassed = true;
+                        }
+
                     }
-                    else
+                    catch (Exception exception)
                     {
-                        WriteMessage($"Test {test.Name} passed");
+                        time.Stop();
+                        testInfo.ExecutionTime = time.Elapsed;
+
+                        if (attribute.Expected == exception.InnerException.GetType())
+                        {
+                            testInfo.IsPassed = true;
+                        }
                     }
+
+                    Parallel.ForEach(afterMethods, method => method.Invoke(testClassInstance, null));
                 }
-                catch (Exception exception)
-                {
-                    startTime.Stop();
 
-                    if (attribute.Expected == exception.GetType())
-                    {
-                        WriteMessage($"Test {test.Name} passed");
-                    }
-                    else
-                    {
-                        WriteMessage($"Test {test.Name} failed with an exception {exception.GetType()}: {exception.Message}");
-                    }
-                }
-                finally
-                {
-                    WriteMessage($"Execution time: {startTime.Elapsed}\n \n");
-                }
-
-                Parallel.ForEach(afterMethods, method => method.Invoke(testClassInstance, null));
+                testInfos.Add(testInfo);
             });
+
+            return testInfos.ToArray();
         }
 
-        private static void WriteMessage(string message) => Console.WriteLine(message);
+        /// <summary>
+        /// Prints results of the tests.
+        /// </summary>
+        /// <param name="testInfos">Tests to print result for.</param>
+        public static void PrintResults(TestInfo[] testInfos)
+        {
+            foreach (var test in testInfos)
+            {
+                if (test.IsIgnored)
+                {
+                    Console.WriteLine($"{test.Name}() is ignored\nReason: {test.IgnoreReason}\n\n");
+                    continue;
+                }
+
+                if (test.IsPassed)
+                {
+                    Console.WriteLine($"{test.Name}() is passed");
+                }
+                else
+                {
+                    Console.WriteLine($"{test.Name}() is failed");
+                }
+
+                Console.WriteLine($"Execution time: {test.ExecutionTime}\n\n");
+            }
+        }
     }
 }

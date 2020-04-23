@@ -8,7 +8,7 @@ namespace MyNUnit
         {
             try
             {
-                NUnit.RunTests(args[0]);
+                NUnit.PrintResults(NUnit.RunTests(args[0]));
             }
             catch (Exception exception)
             {

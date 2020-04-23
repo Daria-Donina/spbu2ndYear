@@ -5,14 +5,14 @@ namespace AfterClassTestProject
 {
     public class AfterClassTests
     {
-        private static bool IsTestMethod1Passed { get; set; }
-        private static bool IsTestMethod2Passed { get; set; }
+        private static bool isTestMethod1Passed;
+        private static bool isTestMethod2Passed;
         public static int Count { get; private set; }
 
         [AfterClass]
         public static void AfterClassMethod()
         {
-            if (IsTestMethod1Passed && IsTestMethod2Passed)
+            if (isTestMethod1Passed && isTestMethod2Passed)
             {
                 Count++;
             }
@@ -22,14 +22,14 @@ namespace AfterClassTestProject
         public void TestMethod1()
         {
             Thread.Sleep(300);
-            IsTestMethod1Passed = true;
+            isTestMethod1Passed = true;
         }
 
         [Test]
         public void TestMethod2()
         {
             Thread.Sleep(300);
-            IsTestMethod2Passed = true;
+            isTestMethod2Passed = true;
         }
     }
 }

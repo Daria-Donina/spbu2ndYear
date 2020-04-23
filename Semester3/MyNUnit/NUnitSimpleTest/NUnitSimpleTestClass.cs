@@ -6,13 +6,7 @@ namespace NUnitSimpleTest
 {
     public class NUnitSimpleTestClass
     {
-        public static bool IsTestPassed { get; private set; }
-
         [Test]
-        public void TestMethod()
-        {
-            Thread.Sleep(500);
-            IsTestPassed = true;
-        }
+        public void TestMethod() { }
     }
 }

@@ -2,7 +2,7 @@
   "profiles": {
     "MyNUnit": {
       "commandName": "Project",
-      "commandLineArgs": "../../../../BeforeClassTestProject/bin/Debug/netcoreapp3.1"
+      "commandLineArgs": "../../../../AllSystemTestProject/bin/Debug/netcoreapp3.1"
     }
   }
 }

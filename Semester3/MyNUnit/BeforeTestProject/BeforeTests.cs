@@ -1,4 +1,5 @@
 ﻿using MyNUnit.Attributes;
+using System;
 using System.Threading;
 
 namespace BeforeTestProject
@@ -7,17 +8,15 @@ namespace BeforeTestProject
     {
         private static int count;
 
-        private bool IsBeforeMethod1Passed { get; set; }
-        private bool IsBeforeMethod2Passed { get; set; }
-        public static bool IsTestMethod1Passed { get; private set; }
-        public static bool IsTestMethod2Passed { get; private set; }
+        private bool isBeforeMethod1Passed;
+        private bool isBeforeMethod2Passed;
         public static int Count { get => count; private set => count = value; }
 
         [Before]
         public void BeforeMethod1()
         {
             Thread.Sleep(200);
-            IsBeforeMethod1Passed = true;
+            isBeforeMethod1Passed = true;
             Interlocked.Increment(ref count);
         }
 
@@ -25,26 +24,27 @@ namespace BeforeTestProject
         public void BeforeMethod2()
         {
             Thread.Sleep(400);
-            IsBeforeMethod2Passed = true;
+            isBeforeMethod2Passed = true;
             Interlocked.Increment(ref count);
         }
 
         [Test]
         public void TestMethod1()
         {
-            if (IsBeforeMethod1Passed && IsBeforeMethod2Passed)
+            if (!isBeforeMethod1Passed || !isBeforeMethod2Passed)
             {
-                Thread.Sleep(200);
-                IsTestMethod1Passed = true;
+                throw new Exception();
             }
+
+            Thread.Sleep(200);
         }
 
         [Test]
         public void TestMethod2()
         {
-            if (IsBeforeMethod1Passed && IsBeforeMethod2Passed)
+            if (!isBeforeMethod1Passed || !isBeforeMethod2Passed)
             {
-                IsTestMethod2Passed = true;
+                throw new Exception();
             }
         }
     }
