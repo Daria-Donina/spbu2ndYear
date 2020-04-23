@@ -10,6 +10,9 @@ using System.Collections.Generic;
 
 namespace MyNUnit
 {
+    /// <summary>
+    /// Class implementing the testing system.
+    /// </summary>
     public static class NUnit
     {
         private static readonly object locker = new object();
