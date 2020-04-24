@@ -9,7 +9,7 @@ namespace PassedTestsTestProject
         [Test(Expected = typeof(InvalidOperationException))]
         public void TestWithException()
         {
-            Thread.Sleep(200);
+            Thread.Sleep(500);
             throw new InvalidOperationException();
         }
     }

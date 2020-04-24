@@ -85,7 +85,7 @@ namespace MyNUnit.Tests
 
             Assert.IsTrue(test3.IsPassed);
             Assert.IsTrue(test4.IsPassed);
-            Assert.IsTrue(time.ElapsedMilliseconds < 400);
+            Assert.IsTrue(time.ElapsedMilliseconds < 1000);
         }
 
         [Test]

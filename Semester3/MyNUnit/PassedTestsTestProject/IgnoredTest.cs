@@ -6,6 +6,6 @@ namespace PassedTestsTestProject
     public class IgnoredTest
     {
         [Test(Ignore = "This test in not completed yet.")]
-        public void TestIgnored() => Thread.Sleep(200);
+        public void TestIgnored() => Thread.Sleep(500);
     }
 }
