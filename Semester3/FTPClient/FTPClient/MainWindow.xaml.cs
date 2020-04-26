@@ -20,8 +20,13 @@ namespace FTPClient
     /// </summary>
     public partial class MainWindow : Window
     {
+        private MainViewModel model;
+
         public MainWindow()
         {
+            model = new MainViewModel();
+            DataContext = model;
+
             InitializeComponent();
         }
     }

@@ -61,7 +61,7 @@
             <Border Padding="10" BorderThickness="0, 0, 1, 0">
                 <StackPanel>
                     <TextBlock Text="Address *" />
-                    <TextBox/>
+                    <TextBox Text="{Binding Path=Address}"/>
 
                     <TextBlock Text="Port *" />
                     <TextBox/>
@@ -69,7 +69,7 @@
                     <TextBlock Text="Download path" />
                     <TextBox/>
 
-                    <Button Content="Connect" Margin="0, 10, 0, 0" Height="40"/>
+                    <Button Content="Connect" Command="" Margin="0, 10, 0, 0" Height="40"/>
 
                 </StackPanel>
             </Border>
