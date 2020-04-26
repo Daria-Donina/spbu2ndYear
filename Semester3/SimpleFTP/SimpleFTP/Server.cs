@@ -56,16 +56,15 @@ namespace SimpleFTP
                         var response = List(path);
                         await writer.WriteLineAsync(response);
                     }
-                    else if (command.StartsWith("2"))
+                    else
                     {
                         var response = Get(path);
                         await writer.WriteLineAsync(response);
                     }
-                    else
-                    {
-                        throw new InvalidDataException("The request has the wrong format.");
-                    }
                 }
+
+                reader.Dispose();
+                writer.Dispose();
             });
         }
 
