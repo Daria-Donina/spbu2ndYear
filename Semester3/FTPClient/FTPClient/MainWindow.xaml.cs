@@ -24,10 +24,9 @@ namespace FTPClient
 
         public MainWindow()
         {
-            model = new MainViewModel();
-            DataContext = model;
-
             InitializeComponent();
+
+            DataContext = new MainViewModel();
         }
     }
 }
