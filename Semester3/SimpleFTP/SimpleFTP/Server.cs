@@ -49,6 +49,12 @@ namespace SimpleFTP
                 while (!cancellationToken.IsCancellationRequested)
                 {
                     var command = await reader.ReadLineAsync();
+
+                    if (command is null)
+                    {
+                        break;
+                    }
+
                     var path = command.Substring(2);
 
                     if (command.StartsWith("1"))
