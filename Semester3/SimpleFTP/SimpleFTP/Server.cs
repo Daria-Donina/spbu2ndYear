@@ -86,15 +86,15 @@ namespace SimpleFTP
             response.Append($"{files.Length + directories.Length}");
 
             var fullPath = dirInfo.FullName;
-            
-            foreach (var file in files)
-            {
-                response.Append($" {file.FullName.Substring(fullPath.Length + 1)} false");
-            }
 
             foreach (var directory in directories)
             {
                 response.Append($" {directory.FullName.Substring(fullPath.Length + 1)} true");
+            }
+
+            foreach (var file in files)
+            {
+                response.Append($" {file.FullName.Substring(fullPath.Length + 1)} false");
             }
 
             return response.ToString();
@@ -104,7 +104,7 @@ namespace SimpleFTP
         {
             var fileInfo = new FileInfo(path);
 
-            if(!fileInfo.Exists)
+            if (!fileInfo.Exists)
             {
                 return "-1";
             }

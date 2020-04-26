@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
@@ -48,7 +49,7 @@ namespace SimpleFTP
         /// </summary>
         /// <param name="path"> Relative path to the directory. </param>
         /// <returns> String containing a list of files' and directories' names and their total number. </returns>
-        public async Task<string> List(string path)
+        public async Task<(List<DirectoryInfo>, List<FileInfo>)> List(string path)
         {
             if (!IsConnected)
             {
@@ -57,7 +58,40 @@ namespace SimpleFTP
 
             var request = $"1 {path}";
             await writer.WriteLineAsync(request);
-            return await reader.ReadLineAsync();
+
+            return HandleListResponse(await reader.ReadLineAsync());
+        }
+
+        private (List<DirectoryInfo>, List<FileInfo>) HandleListResponse(string response)
+        {
+            if (response == "-1")
+            {
+                throw new ArgumentException("Directory does not exist");
+            }
+
+            var directories = new List<DirectoryInfo>();
+            var files = new List<FileInfo>();
+
+            var responseArray = response.Split(' ');
+
+            for (int i = 2; i < responseArray.Length; ++i)
+            {
+                if (i % 2 != 0)
+                {
+                    continue;
+                }
+
+                if (bool.Parse(responseArray[i]))
+                {
+                    directories.Add(new DirectoryInfo(responseArray[i - 1]));
+                }
+                else
+                {
+                    files.Add(new FileInfo(responseArray[i - 1]));
+                }
+            }
+
+            return (directories, files);
         }
 
         /// <summary>
@@ -65,7 +99,7 @@ namespace SimpleFTP
         /// </summary>
         /// <param name="path"> Relative file path. </param>
         /// <returns> String containing size of the file and its content in bytes. </returns>
-        public async Task<string> Get(string path)
+        public async Task<(long, string)> Get(string path)
         {
             if (!IsConnected)
             {
@@ -74,7 +108,16 @@ namespace SimpleFTP
 
             var request = $"2 {path}";
             await writer.WriteLineAsync(request);
-            return await reader.ReadLineAsync();
+            var response = await reader.ReadLineAsync();
+
+            if (response == "-1")
+            {
+                throw new ArgumentException("File does not exist");
+            }
+
+            var responseArray = response.Split(' ');
+
+            return (long.Parse(responseArray[0]), responseArray[1]);
         }
 
         /// <summary>
@@ -82,13 +125,8 @@ namespace SimpleFTP
         /// </summary>
         public void Dispose()
         {
-            writer.Close();
             writer.Dispose();
-
-            reader.Close();
             reader.Dispose();
-
-            tcpClient.Close();
             tcpClient.Dispose();
         }
     }
