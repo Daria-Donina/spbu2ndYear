@@ -43,34 +43,32 @@ namespace SimpleFTP
         {
             Task.Run(async () =>
             {
-                var reader = new StreamReader(stream);
-                var writer = new StreamWriter(stream) { AutoFlush = true };
-
-                while (!cancellationToken.IsCancellationRequested)
+                using (var writer = new StreamWriter(stream) { AutoFlush = true })
+                using (var reader = new StreamReader(stream))
                 {
-                    var command = await reader.ReadLineAsync();
-
-                    if (command is null)
+                    while (!cancellationToken.IsCancellationRequested)
                     {
-                        break;
-                    }
+                        var command = await reader.ReadLineAsync();
 
-                    var path = command.Substring(2);
+                        if (command is null)
+                        {
+                            break;
+                        }
 
-                    if (command.StartsWith("1"))
-                    {
-                        var response = List(path);
-                        await writer.WriteLineAsync(response);
-                    }
-                    else
-                    {
-                        var response = Get(path);
-                        await writer.WriteLineAsync(response);
+                        var path = command.Substring(2);
+
+                        if (command.StartsWith("1"))
+                        {
+                            var response = List(path);
+                            await writer.WriteLineAsync(response);
+                        }
+                        else
+                        {
+                            var response = Get(path);
+                            await writer.WriteLineAsync(response);
+                        }
                     }
                 }
-
-                reader.Dispose();
-                writer.Dispose();
             });
         }
 
