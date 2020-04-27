@@ -112,7 +112,8 @@ namespace SimpleFTP
                 return "-1";
             }
 
-            return $"{fileInfo.Length} {File.ReadAllBytes(path)}";
+            var buff = File.ReadAllText(path);
+            return buff;
         }
 
         /// <summary>

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -20,13 +21,25 @@ namespace FTPClient
     /// </summary>
     public partial class MainWindow : Window
     {
-        private MainViewModel model;
-
+        MainViewModel model;
         public MainWindow()
         {
             InitializeComponent();
 
-            DataContext = new MainViewModel();
+            model = new MainViewModel();
+            DataContext = model;
+        }
+
+        private async void HandleItemDoubleClick(object sender, RoutedEventArgs e)
+        {
+            var listViewItem = sender as ListViewItem;
+            await model.OpenFolder(listViewItem.Content as string);
+        }
+
+        private void HandleItemGotFocus(object sender, RoutedEventArgs e)
+        {
+            var listViewItem = sender as ListViewItem;
+            model.MarkSelectedItem(listViewItem.Content as string);
         }
     }
 }

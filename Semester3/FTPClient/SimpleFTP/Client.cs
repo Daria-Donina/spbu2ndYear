@@ -99,7 +99,7 @@ namespace SimpleFTP
         /// </summary>
         /// <param name="path"> Relative file path. </param>
         /// <returns> String containing size of the file and its content in bytes. </returns>
-        public async Task<(long, string)> Get(string path)
+        public async Task<string> Get(string path)
         {
             if (!IsConnected)
             {
@@ -115,9 +115,7 @@ namespace SimpleFTP
                 throw new ArgumentException("File does not exist");
             }
 
-            var responseArray = response.Split(' ');
-
-            return (long.Parse(responseArray[0]), responseArray[1]);
+            return response;
         }
 
         /// <summary>
