@@ -86,7 +86,6 @@ namespace MyThreadPool.Tests
         {
             var task = DivideByZeroSupplier();
             _ = task.Result;
-            Assert.IsTrue(task.IsCompleted);
         }
 
         [TestMethod]

@@ -17,8 +17,9 @@ namespace MyThreadPool
         /// Returns a number of running threads in threadpool.
         /// </summary>
         public int ActiveThreads { get; private set; }
-        private readonly AutoResetEvent taskAdded = new AutoResetEvent(false);
+        private readonly ManualResetEvent taskAdded = new ManualResetEvent(false);
         private readonly object locker = new object();
+        private readonly AutoResetEvent taskCompleted = new AutoResetEvent(false);
 
         public MyThreadPool(int threadNumber)
         {
@@ -48,6 +49,8 @@ namespace MyThreadPool
                     lock (locker)
                     {
                         --ActiveThreads;
+                        taskCompleted.Set();
+                        Console.WriteLine($"Thread number {Thread.CurrentThread.ManagedThreadId} is done");
                         return;
                     }
                 }
@@ -58,6 +61,7 @@ namespace MyThreadPool
                 }
                 else
                 {
+                    Console.WriteLine($"Thread number {Thread.CurrentThread.ManagedThreadId} is waiting");
                     taskAdded.WaitOne();
                 }
             }
@@ -71,13 +75,13 @@ namespace MyThreadPool
         /// <returns>Task created using the supplier.</returns>
         public IMyTask<TResult> AddTask<TResult>(Func<TResult> supplier)
         {
+            var task = new MyTask<TResult>(supplier, this);
+            AddAction(task.Execute);
+
             if (cancellationTokenSource.IsCancellationRequested)
             {
                 throw new ShutdownException();
             }
-
-            var task = new MyTask<TResult>(supplier, this);
-            AddAction(task.Execute);
 
             return task;
         }
@@ -98,6 +102,7 @@ namespace MyThreadPool
             while (ActiveThreads != 0)
             {
                 taskAdded.Set();
+                taskCompleted.WaitOne();
             }
         }
 
@@ -174,12 +179,12 @@ namespace MyThreadPool
 
                 lock (queueLock)
                 {
+                    threadPool.AddAction(newTask.Execute);
+
                     if (threadPool.cancellationTokenSource.IsCancellationRequested)
                     {
                         throw new ShutdownException();
                     }
-
-                    threadPool.AddAction(newTask.Execute);
                 }
                 
                 return newTask;
