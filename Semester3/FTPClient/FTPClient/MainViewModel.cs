@@ -3,86 +3,137 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO;
-using System.Runtime.CompilerServices;
-using System.Text;
-using System.Threading;
+using System.Net.Sockets;
 using System.Threading.Tasks;
+using System.Windows;
 using SimpleFTP;
 
 namespace FTPClient
 {
+    /// <summary>
+    /// Class representing View Model of the app.
+    /// </summary>
     public class MainViewModel : INotifyPropertyChanged
     {
         private Client client;
         private Server server;
         private (List<DirectoryInfo>, List<FileInfo>) filesAndDirectories;
+        private int port = 7777;
+        private string serverPath = rootPath;
+        private const string rootPath = "../../..";
+        private bool isConnected;
+        private string selectedFile;
 
+        /// <summary>
+        /// Occurs when a property value changes.
+        /// </summary>
         public event PropertyChangedEventHandler PropertyChanged;
 
-        public void OnPropertyChanged([CallerMemberName] string prop = "")
-            => PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(prop));
+        /// <summary>
+        /// The DNS name of the remote host to which you intend to connect.
+        /// </summary>
+        public string Hostname { get; set; } = "localhost";
 
-        public string Address { get; set; } = "localhost";
+        /// <summary>
+        /// The port number of the remote host to which you intend to connect.
+        /// </summary>
+        public string Port
+        {
+            get => port.ToString();
+            set
+            {
+                if (int.TryParse(value, out int result))
+                {
+                    port = result;
+                }
+            }
+        }
 
-        public int Port { get; set; } = 7777;
-
-        public string SelectedFile { get; set; }
-
-        public bool IsConnected { get; set; }
-
+        /// <summary>
+        /// Connects the client to the server.
+        /// </summary>
         public RelayCommand Connect
         {
             get
             {
                 return new RelayCommand(async obj =>
                 {
-                    Close();
+                    try
+                    {
+                        Close();
 
-                    server = new Server(Port);
-                    client = new Client(Address, Port);
+                        server = new Server(port);
+                        client = new Client(Hostname, port);
 
-                    server.Start();
-                    client.Connect();
-                    IsConnected = true;
+                        server.Start();
+                        client.Connect();
+                        isConnected = true;
 
-                    ServerPath = rootPath;
-                    FilesAndDirectories = await client.List(ServerPath);
+                        serverPath = rootPath;
+
+                        await RefreshList();
+                    }
+                    catch (SocketException)
+                    {
+                        if (port == 0)
+                        {
+                            MessageBox.Show("Port is incorrect", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                        else
+                        {
+                            MessageBox.Show("Hostname is incorrect", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                    catch (ArgumentOutOfRangeException)
+                    {
+                        MessageBox.Show("Port is incorrect", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
                 });
             }
         }
 
-        public string ServerPath { get; set; } = rootPath;
-
-        private const string rootPath = "../../..";
-
+        /// <summary>
+        /// List of files and directories on the server that client sees.
+        /// </summary>
         public ObservableCollection<string> ListOfFilesAndDirectories { get; set; } = new ObservableCollection<string>();
 
-        public (List<DirectoryInfo>, List<FileInfo>) FilesAndDirectories
-        {
-            get => filesAndDirectories;
-            set
-            {
-                filesAndDirectories = value;
-                RefreshList();
-            }
-        }
+        /// <summary>
+        /// Path to download files to.
+        /// </summary>
+        public string DownloadPath { get; set; } = "";
 
-        private void RefreshList()
+        /// <summary>
+        /// List of files that are downloading.
+        /// </summary>
+        public ObservableCollection<string> DownloadingFiles { get; set; } = new ObservableCollection<string>();
+
+        /// <summary>
+        /// List of downloaded files.
+        /// </summary>
+        public ObservableCollection<string> DownloadedFiles { get; set; } = new ObservableCollection<string>();
+
+        private async Task RefreshList()
         {
+            filesAndDirectories = await client.List(serverPath);
+
             ListOfFilesAndDirectories.Clear();
 
-            foreach (var item in FilesAndDirectories.Item1)
+            foreach (var item in filesAndDirectories.Item1)
             {
                 ListOfFilesAndDirectories.Add(item.Name);
             }
-            foreach (var item in FilesAndDirectories.Item2)
+            foreach (var item in filesAndDirectories.Item2)
             {
                 ListOfFilesAndDirectories.Add(item.Name);
             }
         }
 
-        private bool IsFile(string name) => !FilesAndDirectories.Item1.Exists(item => item.Name == name);
+        private bool IsFile(string name) => !filesAndDirectories.Item1.Exists(item => item.Name == name);
 
+        /// <summary>
+        /// Opens folder when it's double-clicked.
+        /// </summary>
+        /// <param name="name">Name of the folder.</param>
         public async Task OpenFolder(string name)
         {
             if (IsFile(name))
@@ -90,97 +141,137 @@ namespace FTPClient
                 return;
             }
 
-            ServerPath += $"/{name}";
-            FilesAndDirectories = await client.List(ServerPath);
+            serverPath += $"/{name}";
+            await RefreshList();
         }
 
+        /// <summary>
+        /// Goes one folder back.
+        /// </summary>
         public RelayCommand GoBack
         {
             get
             {
                 return new RelayCommand(async obj =>
                 {
-                    var index = ServerPath.LastIndexOf("/");
+                    var index = serverPath.LastIndexOf("/");
 
-                    ServerPath = ServerPath.Substring(0, index);
-                    FilesAndDirectories = await client.List(ServerPath);
+                    serverPath = serverPath.Substring(0, index);
+                    await RefreshList();
 
-                }, obj => ServerPath != rootPath);
+                }, obj => serverPath != rootPath);
             }
         }
 
+        /// <summary>
+        /// Downloads file that has the focus.
+        /// </summary>
         public RelayCommand Download
         {
             get
             {
                 return new RelayCommand(async obj =>
                 {
-                    await GetFile(SelectedFile);
-                }, obj => IsConnected && SelectedFile != null);
+                    try
+                    {
+                        await GetFile(selectedFile);
+                    }
+                    catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                    {
+                        MessageBox.Show("Download path is incorrect", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+
+                }, obj => isConnected && selectedFile != null);
             }
         }
 
+        /// <summary>
+        /// Downloads all the files in the current folder that client sees.
+        /// </summary>
         public RelayCommand DownloadAll
         {
             get
             {
                 return new RelayCommand(async obj =>
                 {
-                    foreach (var file in Directory.GetFiles(ServerPath))
+                    try
                     {
-                        await GetFile(file.Substring(file.LastIndexOf("\\") + 1));
+                        foreach (var file in Directory.GetFiles(serverPath))
+                        {
+                            await GetFile(file.Substring(file.LastIndexOf("\\") + 1));
+                        }
+                    }
+                    catch (Exception e) when (e is IOException || e is UnauthorizedAccessException)
+                    {
+                        MessageBox.Show("Download path is incorrect", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
 
-                }, obj => IsConnected);
+                }, obj => isConnected);
             }
         }
-
-        public string DownloadPath { get; set; }
-
-        public ObservableCollection<string> DownloadingFiles { get; set; } = new ObservableCollection<string>();
-
-        public ObservableCollection<string> DownloadedFiles { get; set; } = new ObservableCollection<string>();
 
         private async Task GetFile(string fileName)
         {
-            DownloadingFiles.Add(fileName);
-
-            var fileInfo = await client.Get(ServerPath + "/" + fileName);
-            using var fileWriter = new StreamWriter(new FileStream(DownloadPath + fileName, FileMode.Create));
-            await fileWriter.WriteAsync(fileInfo);
-
-            DownloadingFiles.Remove(fileName);
-
-            if (DownloadedFiles.Contains(fileName))
+            try
             {
-                return;
-            }
+                DownloadingFiles.Add(fileName);
 
-            DownloadedFiles.Add(fileName);
+                if (!DownloadPath.EndsWith('/'))
+                {
+                    DownloadPath += "/";
+                }
+
+                var fileInfo = await client.Get(serverPath + "/" + fileName);
+                using var fileWriter = new StreamWriter(new FileStream(DownloadPath + fileName, FileMode.Create));
+                await fileWriter.WriteAsync(fileInfo);
+
+                DownloadingFiles.Remove(fileName);
+
+                if (DownloadedFiles.Contains(fileName))
+                {
+                    return;
+                }
+
+                DownloadedFiles.Add(fileName);
+            }
+            finally
+            {
+                DownloadingFiles.Remove(fileName);
+            }
         }
 
+        /// <summary>
+        /// Saves the file that has focus.
+        /// </summary>
+        /// <param name="name"></param>
         public void MarkSelectedItem(string name)
         {
             if (IsFile(name))
             {
-                SelectedFile = name;
+                selectedFile = name;
             }
             else
             {
-                SelectedFile = null;
+                selectedFile = null;
             }
         }
 
-        private void Close()
+        /// <summary>
+        /// Disposes client and server.
+        /// </summary>
+        public void Close()
         {
             client?.Dispose();
             server?.Stop();
             server?.Dispose();
 
-            IsConnected = false;
+            isConnected = false;
 
             DownloadingFiles.Clear();
             DownloadedFiles.Clear();
+
+            client = null;
+            server = null;
         }
     }
 }

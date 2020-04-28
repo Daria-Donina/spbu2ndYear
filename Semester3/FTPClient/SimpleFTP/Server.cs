@@ -121,8 +121,8 @@ namespace SimpleFTP
         /// </summary>
         public void Stop()
         {
-            cancellationToken.Cancel();
-            listener.Stop();
+            cancellationToken?.Cancel();
+            listener?.Stop();
         }
 
         /// <summary>

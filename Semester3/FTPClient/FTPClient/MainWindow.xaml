@@ -71,8 +71,8 @@
 
             <Border Padding="10" BorderThickness="0, 0, 1, 0">
                 <StackPanel>
-                    <TextBlock Text="Address *" />
-                    <TextBox Text="{Binding Path=Address}"/>
+                    <TextBlock Text="Hostname *" />
+                    <TextBox Text="{Binding Path=Hostname}"/>
 
                     <TextBlock Text="Port *" />
                     <TextBox Text="{Binding Path=Port}"/>

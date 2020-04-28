@@ -123,9 +123,9 @@ namespace SimpleFTP
         /// </summary>
         public void Dispose()
         {
-            writer.Dispose();
-            reader.Dispose();
-            tcpClient.Dispose();
+            writer?.Dispose();
+            reader?.Dispose();
+            tcpClient?.Dispose();
         }
     }
 }
