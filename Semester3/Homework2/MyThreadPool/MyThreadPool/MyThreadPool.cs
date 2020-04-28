@@ -50,7 +50,6 @@ namespace MyThreadPool
                     {
                         --ActiveThreads;
                         taskCompleted.Set();
-                        Console.WriteLine($"Thread number {Thread.CurrentThread.ManagedThreadId} is done");
                         return;
                     }
                 }
@@ -61,7 +60,6 @@ namespace MyThreadPool
                 }
                 else
                 {
-                    Console.WriteLine($"Thread number {Thread.CurrentThread.ManagedThreadId} is waiting");
                     taskAdded.WaitOne();
                 }
             }
