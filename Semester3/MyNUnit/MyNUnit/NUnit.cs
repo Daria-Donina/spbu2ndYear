@@ -24,13 +24,7 @@ namespace MyNUnit
         /// <returns> Result of the tests.</returns>
         public static TestInfo[] RunTests(string path)
         {
-            var assemblyPaths = Directory.GetFiles(path, "*.dll");
-
-            var assemblies = new BlockingCollection<Assembly>();
-            foreach (var assemblyPath in assemblyPaths)
-            {
-                assemblies.Add(Assembly.LoadFrom(assemblyPath));
-            }
+            var assemblies = LoadAssemblies(path);
 
             var testInfos = new List<TestInfo>();
 
@@ -40,15 +34,13 @@ namespace MyNUnit
 
                 Parallel.ForEach(testClasses, testClass =>
                 {
-                    var testClassInstance = Activator.CreateInstance(testClass);
-
                     var methods = testClass.GetMethods();
 
                     Parallel.ForEach(methods.Where(method => MethodSelector<BeforeClassAttribute>(method)),
                         method => method.Invoke(null, null));
 
                     var testInfosForClass = ExecuteTests(
-                        testClassInstance,
+                        testClass,
                         methods.Where(method => MethodSelector<BeforeAttribute>(method)),
                         methods.Where(method => MethodSelector<TestAttribute>(method)),
                         methods.Where(method => MethodSelector<AfterAttribute>(method)));
@@ -58,12 +50,27 @@ namespace MyNUnit
 
                     lock (locker)
                     {
-                        testInfos = Queryable.Concat(testInfos.AsQueryable(), testInfosForClass).ToList();
+                        testInfos.AddRange(testInfosForClass);
                     }
                 });
             });
 
             return testInfos.ToArray();
+        }
+
+        private static BlockingCollection<Assembly> LoadAssemblies(string path)
+        {
+            var assemblyPaths = Directory.GetFiles(path, "*.dll");
+
+            var assemblies = new BlockingCollection<Assembly>();
+
+
+            Parallel.ForEach(assemblyPaths, assemblyPath =>
+            {
+                assemblies.Add(Assembly.LoadFrom(assemblyPath));
+            });
+
+            return assemblies;
         }
 
         private static bool MethodSelector<T>(MethodInfo method) where T : Attribute
@@ -96,7 +103,7 @@ namespace MyNUnit
         }
 
         private static TestInfo[] ExecuteTests(
-            object testClassInstance,
+            Type testClass,
             IEnumerable<MethodInfo> beforeMethods,
             IEnumerable<MethodInfo> testMethods,
             IEnumerable<MethodInfo> afterMethods)
@@ -105,6 +112,8 @@ namespace MyNUnit
 
             Parallel.ForEach(testMethods, test =>
             {
+                var testClassInstance = Activator.CreateInstance(testClass);
+
                 var testInfo = new TestInfo(test.Name);
 
                 var attribute = test.GetCustomAttribute<TestAttribute>();
