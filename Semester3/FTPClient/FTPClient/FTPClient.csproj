@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\SimpleFTP\SimpleFTP.csproj" />
+    <ProjectReference Include="..\ClientAPI\ClientAPI.csproj" />
   </ItemGroup>
 
 </Project>

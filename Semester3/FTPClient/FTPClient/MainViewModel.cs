@@ -6,7 +6,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 using System.Windows;
-using SimpleFTP;
+using ClientAPI;
 
 namespace FTPClient
 {
@@ -16,13 +16,13 @@ namespace FTPClient
     public class MainViewModel : INotifyPropertyChanged
     {
         private Client client;
-        private Server server;
         private (List<DirectoryInfo>, List<FileInfo>) filesAndDirectories;
         private int port = 7777;
         private string serverPath = rootPath;
         private const string rootPath = "../../..";
         private bool isConnected;
         private string selectedFile;
+        private string hostname = "localhost";
 
         /// <summary>
         /// Occurs when a property value changes.
@@ -32,7 +32,17 @@ namespace FTPClient
         /// <summary>
         /// The DNS name of the remote host to which you intend to connect.
         /// </summary>
-        public string Hostname { get; set; } = "localhost";
+        public string Hostname
+        {
+            get => hostname;
+            set
+            {
+                if (!isConnected)
+                {
+                    hostname = value;
+                }
+            }
+        }
 
         /// <summary>
         /// The port number of the remote host to which you intend to connect.
@@ -42,7 +52,7 @@ namespace FTPClient
             get => port.ToString();
             set
             {
-                if (int.TryParse(value, out int result))
+                if (int.TryParse(value, out int result) && !isConnected)
                 {
                     port = result;
                 }
@@ -62,10 +72,8 @@ namespace FTPClient
                     {
                         Close();
 
-                        server = new Server(port);
                         client = new Client(Hostname, port);
 
-                        server.Start();
                         client.Connect();
                         isConnected = true;
 
@@ -262,8 +270,6 @@ namespace FTPClient
         public void Close()
         {
             client?.Dispose();
-            server?.Stop();
-            server?.Dispose();
 
             isConnected = false;
 
@@ -271,7 +277,6 @@ namespace FTPClient
             DownloadedFiles.Clear();
 
             client = null;
-            server = null;
         }
     }
 }

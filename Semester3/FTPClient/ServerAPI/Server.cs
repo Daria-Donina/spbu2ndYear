@@ -6,7 +6,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace SimpleFTP
+namespace ServerAPI
 {
     /// <summary>
     /// Class implementing a network server that handles some requests.
@@ -25,18 +25,15 @@ namespace SimpleFTP
         /// <summary>
         /// Runs the server.
         /// </summary>
-        public void Start()
+        public async Task Start()
         {
             listener.Start();
 
-            Task.Run(async () =>
+            while (!cancellationToken.IsCancellationRequested)
             {
-                while (!cancellationToken.IsCancellationRequested)
-                {
-                    var client = await listener.AcceptTcpClientAsync();
-                    RequestHandler(client.GetStream());
-                }
-            });
+                var client = await listener.AcceptTcpClientAsync();
+                RequestHandler(client.GetStream());
+            }
         }
 
         private void RequestHandler(NetworkStream stream)

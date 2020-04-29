@@ -2,18 +2,22 @@ using NUnit.Framework;
 using System.IO;
 using System.Threading;
 using System.Threading.Tasks;
+using ServerAPI;
 
 namespace FTPClient.Tests
 {
     [TestFixture]
     public class ViewModelTests
     {
-        MainViewModel model;
-        object obj;
+        private MainViewModel model;
+        private object obj;
 
         [SetUp]
-        public void SetUp()
+        public async Task SetUp()
         {
+            var server = new Server(5555);
+            await server.Start();
+
             model = new MainViewModel();
             obj = new object();
         }

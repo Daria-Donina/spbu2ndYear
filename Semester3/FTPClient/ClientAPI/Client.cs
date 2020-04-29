@@ -4,7 +4,7 @@ using System.IO;
 using System.Net.Sockets;
 using System.Threading.Tasks;
 
-namespace SimpleFTP
+namespace ClientAPI
 {
     /// <summary>
     /// Class implementing a network client that allows to execute some requests.
