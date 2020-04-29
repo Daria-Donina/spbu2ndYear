@@ -13,10 +13,11 @@ namespace FTPClient.Tests
         private object obj;
 
         [SetUp]
-        public async Task SetUp()
+        public void SetUp()
         {
             var server = new Server(5555);
-            await server.Start();
+
+            Task.Run(async () => await server.Start());
 
             model = new MainViewModel();
             obj = new object();
