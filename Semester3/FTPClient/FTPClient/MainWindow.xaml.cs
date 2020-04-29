@@ -8,7 +8,8 @@ namespace FTPClient
     /// </summary>
     public partial class MainWindow : Window
     {
-        MainViewModel model;
+        private MainViewModel model;
+
         public MainWindow()
         {
             InitializeComponent();

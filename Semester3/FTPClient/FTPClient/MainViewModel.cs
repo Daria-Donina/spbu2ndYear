@@ -70,33 +70,40 @@ namespace FTPClient
                 {
                     try
                     {
-                        Close();
-
-                        client = new Client(Hostname, port);
-
-                        client.Connect();
-                        isConnected = true;
-
-                        serverPath = rootPath;
+                        await Task.Run(() => ConnectTask());
 
                         await RefreshList();
                     }
-                    catch (SocketException)
+                    catch (InvalidOperationException)
                     {
-                        if (port == 0)
-                        {
-                            MessageBox.Show("Port is incorrect", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
-                        else
-                        {
-                            MessageBox.Show("Hostname is incorrect", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                        }
+                        MessageBox.Show("Server is not started", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
-                    catch (ArgumentOutOfRangeException)
-                    {
-                        MessageBox.Show("Port is incorrect", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
-                    }
-                });
+
+                }, obj => !isConnected);
+            }
+        }
+
+        private void ConnectTask()
+        {
+            try
+            {
+                client = new Client(Hostname, port);
+
+                client.Connect();
+                isConnected = true;
+
+                serverPath = rootPath;
+            }
+            catch (SocketException)
+            {
+                if (port == 0)
+                {
+                    MessageBox.Show("Port is incorrect", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+            catch (ArgumentOutOfRangeException)
+            {
+                MessageBox.Show("Port is incorrect", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
 

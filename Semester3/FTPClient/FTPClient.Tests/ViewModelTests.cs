@@ -47,7 +47,7 @@ namespace FTPClient.Tests
             var command = model.Connect;
             command.Execute(obj);
 
-            Thread.Sleep(200);
+            Thread.Sleep(2300);
         }
 
         [Test]
@@ -123,19 +123,6 @@ namespace FTPClient.Tests
 
             Thread.Sleep(200);
 
-            Assert.IsTrue(model.ListOfFilesAndDirectories.Contains("ViewModelTests.cs"));
-        }
-
-        [Test]
-        public void ManyConnectsTest()
-        {
-            Connect();
-            Assert.IsTrue(model.ListOfFilesAndDirectories.Contains("ViewModelTests.cs"));
-
-            Connect();
-            Assert.IsTrue(model.ListOfFilesAndDirectories.Contains("ViewModelTests.cs"));
-
-            Connect();
             Assert.IsTrue(model.ListOfFilesAndDirectories.Contains("ViewModelTests.cs"));
         }
 
