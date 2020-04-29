@@ -1,0 +1,143 @@
+﻿<Window x:Class="FTPClient.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:FTPClient"
+        mc:Ignorable="d"
+        Title="MainWindow" Height="450" Width="800"
+        MinHeight="450" MinWidth="800">
+
+    <Window.Resources>
+
+        <Style TargetType="{x:Type Button}">
+            <Setter Property="FontFamily" Value="Arial" />
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="BorderThickness" Value="0" />
+            <Style.Resources>
+                <Style TargetType="{x:Type Border}">
+                    <Setter Property="CornerRadius" Value="3" />
+                </Style>
+            </Style.Resources>
+        </Style>
+
+        <Style TargetType="{x:Type TextBox}">
+            <Style.Resources>
+                <Style TargetType="{x:Type Border}">
+                    <Setter Property="CornerRadius" Value="3" />
+                </Style>
+            </Style.Resources>
+            <Setter Property="Height" Value="25"/>
+            <Setter Property="Margin" Value="0, 0, 0, 20" />
+            <Setter Property="FontFamily" Value="Arial"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+            <Setter Property="Padding" Value="3"/>
+        </Style>
+
+        <Style TargetType="{x:Type TextBlock}">
+            <Setter Property="FontFamily" Value="Arial" />
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Margin" Value="0, 0, 0, 3" />
+        </Style>
+
+        <Style TargetType="{x:Type Label}">
+            <Setter Property="FontFamily" Value="Arial" />
+            <Setter Property="FontSize" Value="15"/>
+            <Setter Property="Background" Value="LightGray" />
+            <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            <Setter Property="VerticalContentAlignment" Value="Center"/>
+        </Style>
+
+        <Style TargetType="{x:Type Border}">
+            <Setter Property="BorderBrush" Value="Gray"/>
+        </Style>
+
+        <Style TargetType="{x:Type ListViewItem}">
+            <EventSetter Event="MouseDoubleClick" Handler="HandleItemDoubleClick" />
+            <EventSetter Event="GotFocus" Handler="HandleItemGotFocus" />
+        </Style>
+
+        <Style TargetType="{x:Type ListView}">
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+    </Window.Resources>
+
+    <Border BorderThickness="1">
+        <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width = "*"/>
+                <ColumnDefinition Width = "4*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Padding="10" BorderThickness="0, 0, 1, 0">
+                <StackPanel>
+                    <TextBlock Text="Hostname *" />
+                    <TextBox Text="{Binding Path=Hostname}"/>
+
+                    <TextBlock Text="Port *" />
+                    <TextBox Text="{Binding Path=Port}"/>
+
+                    <TextBlock Text="Download path" />
+                    <TextBox Text="{Binding Path=DownloadPath}"/>
+
+                    <Button Content="Connect" Command="{Binding Connect}" Margin="0, 10, 0, 0" Height="40"/>
+
+                </StackPanel>
+            </Border>
+
+            <Grid Grid.Column="1">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="6*"/>
+                    <RowDefinition Height="1*"/>
+                    <RowDefinition Height="3*"/>
+                    <RowDefinition Height="2*"/>
+                </Grid.RowDefinitions>
+
+                <Button Content=".." Command="{Binding GoBack}"/>
+                <ScrollViewer Grid.Row="1" Padding="10, 0, 10, 0">
+                    <ListView ItemsSource="{ Binding Path=ListOfFilesAndDirectories }"/>
+                </ScrollViewer>
+                <Border BorderThickness="0, 0, 0, 1" Grid.Row="1"/>
+
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+
+                    <Label Content="Downloading"/>
+                    <Label Grid.Column="1" Content="Downloaded"/>
+
+                </Grid>
+
+                <Grid Grid.Row="3">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+
+                    <ScrollViewer>
+                        <ItemsControl ItemsSource="{Binding Path=DownloadingFiles}"/>
+                    </ScrollViewer>
+                    <ScrollViewer Grid.Column="1">
+                        <ItemsControl ItemsSource="{Binding Path=DownloadedFiles}"/>
+                    </ScrollViewer>
+                </Grid>
+                <Border Grid.Row="3" BorderThickness="0,0,0,1" />
+
+                <Grid Grid.Row="4">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition/>
+                        <ColumnDefinition/>
+                    </Grid.ColumnDefinitions>
+
+                    <Button Content="Download" Margin="10" Command="{Binding Path=Download}" />
+                    <Button Grid.Column="1" Content="Download All" Margin="10" Command="{Binding DownloadAll}"/>
+                </Grid>
+
+            </Grid>
+         </Grid>
+    </Border>
+    
+</Window>
