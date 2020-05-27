@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <OutputType>Library</OutputType>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
   </PropertyGroup>
 
   <ItemGroup>
@@ -10,7 +10,6 @@
     <Compile Include="Task3.fs" />
     <Compile Include="Task2.fs" />
     <Compile Include="Task1.fs" />
-    <Compile Include="Program.fs" />
   </ItemGroup>
 
 </Project>
